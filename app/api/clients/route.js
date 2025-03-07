@@ -14,11 +14,6 @@ export async function POST(req) {
             return NextResponse.json({ message: "All fields are required" }, { status: 400 });
         }
 
-        // Convert `user` to ObjectId
-        if (!mongoose.Types.ObjectId.isValid(user)) {
-            return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
-        }
-
         // Check if email already exists
         const existingClient = await Client.findOne({ email });
         if (existingClient) {
@@ -27,7 +22,7 @@ export async function POST(req) {
 
         // Create a new client
         const newClient = new Client({
-            user: new mongoose.Types.ObjectId(user), // Convert to ObjectId
+            user:new mongoose.Types.ObjectId(user),
             name,
             email,
             phone,

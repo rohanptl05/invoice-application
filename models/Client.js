@@ -4,6 +4,7 @@ const ClientSchema = new mongoose.Schema({
     user : {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
+        required: true
         
     },
     name: {
@@ -33,6 +34,8 @@ const ClientSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const Client =  mongoose.model('Client', ClientSchema);
+
+const Client = mongoose.models.Client || mongoose.model('Client', ClientSchema);
+
 
 export default Client;
