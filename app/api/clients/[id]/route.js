@@ -29,7 +29,7 @@ export async function GET(req, context) {
 export async function PUT(req, context) {
     try {
         await connectDB();
-        const { id } = context.params;
+        const { id } = await context.params;
         const { name, phone, address } = await req.json();
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
