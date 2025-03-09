@@ -7,7 +7,7 @@ export async function PUT(req, { params }) {
   try {
     await connectDB();
 
-    const { id } = params; // Extract user ID from URL params
+    const { id } =await params; // Extract user ID from URL params
     const { name, image, address, phone, company, password } = await req.json();
 
     // Validate _id format

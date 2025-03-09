@@ -17,14 +17,19 @@ export async function GET(req, { params }) {
 
 
 
-export async function DELETE(req, { params }) {
+export async function DELETE(request, { params }) {
     try {
         await connectDB();
-        const invoice = await Invoice.findByIdAndDelete(params.id);
-        if (!invoice) return NextResponse.json({ message: "Invoice not found" }, { status: 404 });
+        const { id } = await params; // No need to use `await` here
+
+        const invoice = await Invoice.findByIdAndDelete(id);
+        if (!invoice) {
+            return NextResponse.json({ message: "Invoice not found" }, { status: 404 });
+        }
+
         return NextResponse.json({ message: "Invoice deleted successfully" }, { status: 200 });
     } catch (error) {
-        return NextResponse.json({ message: error.message }, { status: 500 });
+        return NextResponse.json({ message: "Error deleting invoice", error: error.message }, { status: 500 });
     }
 }
 
@@ -34,7 +39,7 @@ export async function PUT(req, { params }) {
     try {
         await connectDB();
 
-        const { id } = params;
+        const { id } =await params;
         if (!id) {
             return NextResponse.json({ message: "Invoice ID is required" }, { status: 400 });
         }
@@ -46,8 +51,7 @@ export async function PUT(req, { params }) {
             return NextResponse.json({ message: "'items' must be an array" }, { status: 400 });
         }
 
-        console.log("Received Body:", body);
-        console.log("Updating Invoice ID:", id);
+        
 
         const updatedInvoice = await Invoice.findByIdAndUpdate(
             id,
