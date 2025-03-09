@@ -3,7 +3,7 @@ import React from 'react'
 const page = () => {
   return (
     <div>
-      dash home
+      <h1>exta expances</h1>
     </div>
   )
 }
