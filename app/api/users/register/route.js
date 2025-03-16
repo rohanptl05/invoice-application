@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDb";
 import User from "@/models/User";
+import { useSession, signIn, signOut } from "next-auth/react"
 
 export async function POST(req) {
+   const { data: session } = useSession();
   try {
     await connectDB();
 
@@ -36,8 +38,9 @@ export async function POST(req) {
 
 export async function GET() {
   try {
+    const email =  await session.user.email
     await connectDB();
-    const users = await User.find();
+    const users = await User.findOne({email});
     return NextResponse.json(users, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: "Error fetching users", error: error.message }, { status: 500 });
