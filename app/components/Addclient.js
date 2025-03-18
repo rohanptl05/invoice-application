@@ -31,7 +31,7 @@ const Addclient = ({ getData,onClose, onSubmit, initialData }) => {
       console.log("Client added successfully:", response.success);
       onSubmit && onSubmit();
       onClose && onClose();
-      getData()
+      // getData()
     } else {
       console.error("Error adding client:", response.error);
       alert("Error: " + response.error); // Display error
