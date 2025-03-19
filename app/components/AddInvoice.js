@@ -2,11 +2,13 @@
 import React, { useState } from "react";
 import { ADDinvoice } from "@/app/api/actions/invoiceactions";
 
-const AddInvoice = ({ client, getData,onClose }) => {
+const AddInvoice = ({ client, getData, onClose }) => {
     const [formData, setFormData] = useState({
-        client: client || "", // Ensure it's properly set
+        client: client || "",
         items: [{ item_name: "", item_price: 0, item_quantity: 1, truck_no: "", item_weight: 0, total: 0 }],
         grandTotal: 0,
+        received_amount: 0,
+        balance_due_amount: 0,
     });
 
     const updateGrandTotal = (items) => {
@@ -15,37 +17,39 @@ const AddInvoice = ({ client, getData,onClose }) => {
 
     const handleChange = (e, index = null) => {
         const { name, value } = e.target;
-        const numericValue = name.includes("price") || name.includes("quantity") || name.includes("weight") ? Number(value) : value;
+        const numericValue = name.includes("price") || name.includes("quantity") || name.includes("weight") || name.includes("received_amount")
+            ? Number(value)
+            : value;
 
         if (index !== null) {
             const updatedItems = [...formData.items];
-            updatedItems[index] = { 
-                ...updatedItems[index], 
-                [name]: numericValue 
+            updatedItems[index] = {
+                ...updatedItems[index],
+                [name]: numericValue,
             };
-
-            // ✅ Ensure `total` is correctly calculated
             updatedItems[index].total = updatedItems[index].item_price * updatedItems[index].item_quantity;
-
             const newGrandTotal = updateGrandTotal(updatedItems);
-            setFormData({ ...formData, items: updatedItems, grandTotal: newGrandTotal });
+            setFormData({ ...formData, items: updatedItems, grandTotal: newGrandTotal, balance_due_amount: newGrandTotal - formData.received_amount });
         } else {
-            setFormData({ ...formData, [name]: numericValue });
+            const updatedForm = { ...formData, [name]: numericValue };
+            updatedForm.balance_due_amount = updatedForm.grandTotal - updatedForm.received_amount;
+            setFormData(updatedForm);
         }
     };
 
     const addItem = () => {
         const newItem = { item_name: "", item_price: 0, item_quantity: 1, truck_no: "", item_weight: 0, total: 0 };
-        setFormData((prev) => ({
-            ...prev,
-            items: [...prev.items, newItem],
-        }));
+        setFormData((prev) => {
+            const updatedItems = [...prev.items, newItem];
+            return { ...prev, items: updatedItems, grandTotal: updateGrandTotal(updatedItems), balance_due_amount: updateGrandTotal(updatedItems) - prev.received_amount };
+        });
     };
 
     const removeItem = (index) => {
-        const updatedItems = formData.items.filter((_, i) => i !== index);
-        const newGrandTotal = updateGrandTotal(updatedItems);
-        setFormData({ ...formData, items: updatedItems, grandTotal: newGrandTotal });
+        setFormData((prev) => {
+            const updatedItems = prev.items.filter((_, i) => i !== index);
+            return { ...prev, items: updatedItems, grandTotal: updateGrandTotal(updatedItems), balance_due_amount: updateGrandTotal(updatedItems) - prev.received_amount };
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -65,30 +69,34 @@ const AddInvoice = ({ client, getData,onClose }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="p-6 border rounded-lg shadow-lg">
-            <div>
-                <label className="block text-gray-700">Client ID:</label>
-                <input type="text" name="client" value={formData.client} readOnly className="w-full border rounded-lg px-3 py-2 bg-gray-200" />
+        <form onSubmit={handleSubmit} className="p-6 border rounded-lg shadow-lg bg-white max-w-3xl mx-auto">
+            <div className="mb-4 hidden">
+                <label className=" text-sm font-medium text-gray-700 hidden">Client ID</label>
+                <input type="text" name="client" value={formData.client} readOnly className="w-full border hidden rounded-lg px-3 py-2 bg-gray-100 text-gray-600 shadow-sm" />
             </div>
-
-            <h3 className="mt-4 font-bold">Items</h3>
             {formData.items.map((item, index) => (
-                <div key={index} className="grid grid-cols-7 gap-2 items-center border-b pb-2 mb-2">
-                    <input type="text" name="item_name" value={item.item_name} onChange={(e) => handleChange(e, index)} placeholder="Item Name" className="border rounded-lg px-2 py-1" required />
-                    <input type="number" name="item_price" value={item.item_price} onChange={(e) => handleChange(e, index)} placeholder="Price" className="border rounded-lg px-2 py-1" required />
-                    <input type="number" name="item_quantity" value={item.item_quantity} onChange={(e) => handleChange(e, index)} placeholder="Quantity" className="border rounded-lg px-2 py-1" required />
-                    <input type="text" name="truck_no" value={item.truck_no} onChange={(e) => handleChange(e, index)} placeholder="Truck No" className="border rounded-lg px-2 py-1" />
-                    <input type="number" name="item_weight" value={item.item_weight} onChange={(e) => handleChange(e, index)} placeholder="Weight" className="border rounded-lg px-2 py-1" />
-                    <span className="text-green-600 font-bold">₹ {item.total.toFixed(2)}</span>
-                    <button type="button" onClick={() => removeItem(index)} className="bg-red-500 text-white px-3 py-1 rounded-lg">Remove</button>
+                <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-center border-b pb-3">
+                    <input type="text" name="item_name" value={item.item_name} onChange={(e) => handleChange(e, index)} placeholder="Item Name" className="border rounded-lg px-3 py-2 w-full" required />
+                    <input type="number" name="item_price" value={item.item_price} onChange={(e) => handleChange(e, index)} placeholder="Price" className="border rounded-lg px-3 py-2 w-full" required />
+                    <input type="number" name="item_quantity" value={item.item_quantity} onChange={(e) => handleChange(e, index)} placeholder="Quantity" className="border rounded-lg px-3 py-2 w-full" required />
+                    <input type="text" name="truck_no" value={item.truck_no} onChange={(e) => handleChange(e, index)} placeholder="Truck No" className="border rounded-lg px-3 py-2 w-full" />
+                    <input type="number" name="item_weight" value={item.item_weight} onChange={(e) => handleChange(e, index)} placeholder="Weight" className="border rounded-lg px-3 py-2 w-full" />
+                    <div className="text-center font-bold text-green-600">₹ {item.total.toFixed(2)}</div>
+                    <button type="button" onClick={() => removeItem(index)} className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition-all">Remove</button>
                 </div>
             ))}
-
-            <button type="button" onClick={addItem} className="bg-green-500 text-white px-4 py-2 my-2 rounded-lg">Add Another Item</button>
-            <div className="mt-4 text-xl font-bold">
-                Grand Total: <span className="text-blue-600">₹ {formData.grandTotal.toFixed(2)}</span>
+            <div className="flex justify-center my-4">
+                <button type="button" onClick={addItem} className="bg-green-500 text-white px-5 py-2 rounded-lg hover:bg-green-600 transition-all">+ Add Another Item</button>
             </div>
-            <button type="submit" className="bg-blue-500 text-white px-4 py-2 my-2 rounded-lg">Submit Invoice</button>
+            <div className="mt-6 text-xl font-bold text-center text-gray-800">Grand Total: ₹ {formData.grandTotal.toFixed(2)}</div>
+            <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700">Received Amount</label>
+                <input type="number" name="received_amount" value={formData.received_amount} onChange={handleChange} className="border rounded-lg px-3 py-2 w-full" required />
+            </div>
+            <div className="mt-4 text-xl font-bold text-center text-red-600">Balance Due: ₹ {formData.balance_due_amount.toFixed(2)}</div>
+            <div className="flex justify-center mt-6">
+                <button type="submit" className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-all shadow-lg">Submit Invoice</button>
+            </div>
         </form>
     );
 };

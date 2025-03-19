@@ -2,7 +2,7 @@
 
 import connectDB from "@/db/connectDb"
 import Client from "@/models/Client";
-import Invoice from "@/models/Invoice";
+import {Invoice} from "@/models/Invoice";
 import mongoose from "mongoose";
 
 export const fetchInvoice = async (id) => {
@@ -110,10 +110,16 @@ export const ADDinvoice = async (data) => {
             return null;
         }
 
+        // Ensure received_amount is a valid number
+        const receivedAmount = parseFloat(data.received_amount) || 0;
+        const balanceDue = parseFloat((data.grandTotal - receivedAmount).toFixed(2));
+
         const newInvoice = await Invoice.create({
             client: new mongoose.Types.ObjectId(data.client),
             items: data.items,
             grandTotal: data.grandTotal,
+            received_amount: receivedAmount,
+            balance_due_amount: Math.max(balanceDue, 0), // Prevent negative balance
         });
 
         // ✅ Convert the Mongoose document to a plain JSON object
