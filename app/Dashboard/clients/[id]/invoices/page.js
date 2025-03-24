@@ -1,4 +1,4 @@
-"use client"; // Required for client-side rendering
+"use client";
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -10,39 +10,32 @@ import AddInvoice from "@/app/components/AddInvoice";
 
 const Page = () => {
     const { data: session } = useSession();
-    const { id } = useParams(); // Client ID
+    const { id } = useParams();
     const router = useRouter();
 
     const [invoices, setInvoices] = useState([]);
     const [isModalOpen, setModalOpen] = useState(false);
     const [isAddClientOpen, setIsAddClientOpen] = useState(false);
-    const [modalType, setModalType] = useState("");
-    const [total_due_amout, setTotalDueAmount] = useState(0);
-    // const [selectedInvoice, setSelectedInvoice] = useState({ client: {}, items: [], grandTotal: 0 });
-    const [selectedInvoice, setSelectedInvoice] = useState({ client: {}, items: [], grandTotal: 0, received_amount: 0, balance_due_amount: 0 });
-
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
+    const [originalInvoice, setOriginalInvoice] = useState(null);
+    const [total_due_amount, setTotalDueAmount] = useState(0);
 
     useEffect(() => {
         if (!session) {
             router.push("/");
         } else {
             getData();
-
-
         }
     }, [id, session, router]);
-
     useEffect(() => {
         if (invoices.length > 0) {
             const totalDue = invoices.reduce((sum, invoice) => sum + (invoice.balance_due_amount || 0), 0);
             setTotalDueAmount(totalDue);
+
         } else {
             setTotalDueAmount(0);
         }
     }, [invoices]);
-
-
-
 
     const getData = async () => {
         if (!id) {
@@ -53,10 +46,6 @@ const Page = () => {
             const clientData = await fetchInvoice(id);
             if (clientData) {
                 setInvoices(clientData);
-                if (invoices) {
-                    await console.log(invoices)
-                }
-
             } else {
                 console.error(clientData.error || "No invoices found");
             }
@@ -65,21 +54,30 @@ const Page = () => {
         }
     };
 
-    // const openModal = (type, invoice = null) => {
-    //     setModalType(type);
-    //     setSelectedInvoice(invoice || { client: {}, items: [], grandTotal: 0 });
-    //     setModalOpen(true);
-    // };
-    const openModal = (type, invoice = null) => {
-        setModalType(type);
-        setSelectedInvoice(invoice || { client: {}, items: [], grandTotal: 0, received_amount: 0, balance_due_amount: 0 });
+    const openModal = (invoice) => {
+        setSelectedInvoice(invoice ? { ...invoice } : null);
+        setOriginalInvoice(invoice ? { ...invoice } : null);
         setModalOpen(true);
     };
 
     const handleUpdateInvoice = async (e) => {
         e.preventDefault();
+        if (!selectedInvoice || !originalInvoice) return;
+
+        const updatedFields = {};
+        Object.keys(selectedInvoice).forEach((key) => {
+            if (JSON.stringify(selectedInvoice[key]) !== JSON.stringify(originalInvoice[key])) {
+                updatedFields[key] = selectedInvoice[key];
+            }
+        });
+
+        if (Object.keys(updatedFields).length === 0) {
+            alert("No changes detected!");
+            return;
+        }
+
         try {
-            await editInvoice(selectedInvoice._id, selectedInvoice);
+            await editInvoice(selectedInvoice._id, updatedFields);
             alert("Invoice updated successfully!");
             await getData();
             setModalOpen(false);
@@ -92,11 +90,16 @@ const Page = () => {
     const updateTotalAndGrandTotal = (updatedItems) => {
         const updatedItemsWithTotal = updatedItems.map(item => ({
             ...item,
-            total: item.item_price * item.item_quantity
+            total: (parseFloat(item.item_price) || 0) * (parseFloat(item.item_quantity) || 0)
         }));
         const grandTotal = updatedItemsWithTotal.reduce((sum, item) => sum + item.total, 0);
-        const balance_due_amount = grandTotal - selectedInvoice.received_amount;
-        setSelectedInvoice((prev) => ({ ...prev, items: updatedItemsWithTotal, grandTotal, balance_due_amount }));
+
+        setSelectedInvoice((prev) => ({
+            ...prev,
+            items: updatedItemsWithTotal,
+            grandTotal,
+            balance_due_amount: grandTotal - (prev.received_amount || 0)
+        }));
     };
 
     const handleItemChange = (index, e) => {
@@ -112,120 +115,117 @@ const Page = () => {
     };
 
     const addNewItem = () => {
-        const newItem = { item_name: "", item_price: 0, item_quantity: 1, truck_no: "", received_amount: 0, item_weight: 0, total: 0 };
+        const newItem = {
+            item_name: "",
+            item_price: 0,
+            item_quantity: 1,
+            truck_no: "",
+            item_weight: 0,
+            total: 0
+        };
         updateTotalAndGrandTotal([...selectedInvoice.items, newItem]);
     };
+
     const handleAmountChange = (e) => {
         const received_amount = parseFloat(e.target.value) || 0;
-        const balance_due_amount = selectedInvoice.grandTotal - received_amount;
-        setSelectedInvoice((prev) => ({ ...prev, received_amount, balance_due_amount }));
+        setSelectedInvoice((prev) => ({
+            ...prev,
+            received_amount,
+            balance_due_amount: prev.grandTotal - received_amount
+        }));
     };
 
     return (
         <>
-            {/* Client Info Section */}
             <div className="container">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 justify-between">
 
-                    <div className="flex">
-                        <p className="bg-gradient-to-r from-pink-500 to-red-500 text-white p-4 rounded-lg my-2 text-lg font-bold shadow-md text-center sm:text-left">
-                            Client Name : {invoices.length > 0 ? invoices[0].client.name : "Client Name"}
+
+                <div className="container fill-emerald-50 flex flex-col sm:flex-row px-4 sm:px-6 lg:px-8 justify-between items-center gap-4">
+                    {invoices.length > 0 ? <div className="w-full sm:w-auto text-center sm:text-left">
+                        <p className="bg-gradient-to-r from-pink-500 to-red-500 hover:bg-pink-700 text-white p-4 rounded-lg text-lg font-bold shadow-md">
+                            Client Name: {invoices.length > 0 ? invoices[0].client.name : "Client Name"}
                         </p>
-                    </div>
+                    </div> : ""
 
-                    {/* Add Invoice Button */}
-                    <div className="flex  sm:justify-start">
+                    }
+
+                    <div>
                         <button
                             type="button"
                             onClick={() => setIsAddClientOpen(true)}
-                            className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:bg-indigo-600 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 text-white font-semibold rounded-lg text-sm px-6 py-3 shadow-lg transition-all"
+                            className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:bg-indigo-600 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 text-white font-semibold rounded-lg text-sm px-6 py-3 shadow-lg transition-all w-full sm:w-auto"
                         >
                             + Add Invoice
                         </button>
                     </div>
                 </div>
 
-                {/* Add Invoice Modal */}
                 {isAddClientOpen && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-opacity-50 z-50">
+                    <div className="fixed inset-0 flex items-center justify-center bg-opacity-50 z-50">
                         <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
-                            <h3 className="text-xl font-semibold text-gray-900 mb-4">Add New Client</h3>
+                            <h3 className="text-xl font-semibold text-gray-900">Add New Client</h3>
                             <AddInvoice onClose={() => setIsAddClientOpen(false)} client={id} getData={getData} />
-                            <div className="flex justify-end mt-4">
-                                <button
-                                    onClick={() => setIsAddClientOpen(false)}
-                                    className="bg-gray-300 text-gray-900 px-5 py-2.5 rounded-lg hover:bg-gray-400"
-                                >
-                                    Close
-                                </button>
-                            </div>
+                            <button onClick={() => setIsAddClientOpen(false)} className="mt-4 bg-gray-200 text-gray-900 px-5 py-2.5 rounded-lg hover:bg-gray-300">
+                                Close
+                            </button>
                         </div>
                     </div>
                 )}
 
-                {/* Invoice List */}
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-                    <h2 className="text-xl font-bold text-gray-800 border-b-2 pb-2 mb-4">Invoice List</h2>
+                <div className="h-[75vh]">
+                    <h2>Invoice List</h2>
                     {invoices.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {invoices.map((invoice) => (
-                                <Invoiceitem key={invoice._id} invoice={invoice} updateInvoice={() => openModal("edit", invoice)} />
-                            ))}
-                        </div>
+                        invoices.map((invoice) => (
+                            <Invoiceitem key={invoice._id} invoice={invoice} updateInvoice={() => openModal(invoice)} />
+                        ))
                     ) : (
-                        <p className="text-gray-500 text-center">No invoices available</p>
+                        <p>No invoices available</p>
                     )}
                 </div>
 
 
-
-                {/* // button of credit and debit */}
                 {invoices.length > 0 && (
-                <div className="flex justify-center bg-amber-300 m-auto p-4 rounded-lg">
-                    <button className="text-white bg-gradient-to-r from-red-400 to-red-600 font-medium rounded-lg text-sm px-5 py-2.5 mr-4">
-                        Due Balance Amount: ₹ {total_due_amout.toFixed(2)}
-                    </button>
-                    <button className="text-white bg-gradient-to-r from-teal-400 to-teal-600 font-medium rounded-lg text-sm px-5 py-2.5">
-                        Received Amount
-                    </button>
-                </div>
-            )}
+                    <div className="flex  justify-center  sticky p-4 rounded-lg ">
+                        <div className="flex">
+                            <button className="text-white w-50 bg-gradient-to-r from-red-400 to-red-600 font-medium rounded-lg text-sm px-5 py-2.5 mr-4">
+                                Due Balance Amount: ₹ {total_due_amount.toFixed(2)}
 
 
+                            </button>
+                        </div>
+                        <div className="flex">
+
+                            <button onClick={() => paymentopenModal()} className="text-white w-50 bg-gradient-to-r from-teal-400 to-teal-600 font-medium rounded-lg text-sm px-5 py-2.5">
+                                Received Amount
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {/* Edit Invoice Modal */}
             <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title="Edit Invoice">
                 <div className="overflow-y-auto p-4">
                     <form onSubmit={handleUpdateInvoice} className="space-y-4">
-                        {selectedInvoice.items?.map((item, index) => (
-                            <div key={index} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-                                <input type="text" name="item_name" value={item.item_name} onChange={(e) => handleItemChange(index, e)} className="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-blue-300" placeholder="Item Name" />
-                                <input type="number" name="item_price" value={item.item_price} onChange={(e) => handleItemChange(index, e)} className="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-blue-300" placeholder="Price" />
-                                <input type="number" name="item_quantity" value={item.item_quantity} onChange={(e) => handleItemChange(index, e)} className="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-blue-300" placeholder="Quantity" />
-                                <input type="text" name="truck_no" value={item.truck_no} onChange={(e) => handleItemChange(index, e)} className="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-blue-300" placeholder="Truck No" />
-                                <input type="number" name="item_weight" value={item.item_weight} onChange={(e) => handleItemChange(index, e)} className="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-blue-300" placeholder="Weight" />
-                                <input type="text" value={`₹ ${(item.total || 0).toFixed(2)}`} readOnly className="border bg-gray-100 rounded-lg px-3 py-2 w-full text-gray-600" />
-                                <button type="button" onClick={() => removeItem(index)} className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 w-full transition">
-                                    Remove
-                                </button>
-
+                        {selectedInvoice?.items?.map((item, index) => (
+                            <div key={index} className="grid grid-cols-1 gap-4 items-end">
+                                <input type="text" name="item_name" value={item.item_name} onChange={(e) => handleItemChange(index, e)} className="border rounded-lg px-3 py-2 w-full" placeholder="Item Name" />
+                                <input type="number" name="item_price" value={item.item_price} onChange={(e) => handleItemChange(index, e)} className="border rounded-lg px-3 py-2 w-full" placeholder="Price" />
+                                <input type="number" name="item_quantity" value={item.item_quantity} onChange={(e) => handleItemChange(index, e)} className="border rounded-lg px-3 py-2 w-full" placeholder="Quantity" />
+                                <input type="text" name="truck_no" value={item.truck_no} onChange={(e) => handleItemChange(index, e)} className="border rounded-lg px-3 py-2 w-full" placeholder="Truck No" />
+                                <input type="text" value={`₹ ${(item.total || 0).toFixed(2)}`} readOnly className="border bg-gray-100 rounded-lg px-3 py-2 w-full" />
+                                <button type="button" onClick={() => removeItem(index)} className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 w-full">Remove</button>
                             </div>
                         ))}
-                        <div className="text-lg font-bold text-gray-800">Grand Total: ₹ {selectedInvoice.grandTotal.toFixed(2)}</div>
-                        <input type="number" name="received_amount" value={selectedInvoice.received_amount} onChange={handleAmountChange} className="border rounded-lg px-3 py-2 w-full" placeholder="Received Amount" />
-                        <div className="text-lg font-bold text-gray-800">Balance Due: ₹ {selectedInvoice.balance_due_amount.toFixed(2)}</div>
-
-                        <div className="flex justify-between mt-4">
-                            <button type="button" onClick={addNewItem} className="bg-green-500 text-white px-4 py-2 m-1 rounded-lg hover:bg-green-600 transition">Add Item</button>
-                            <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-lg m-1 hover:bg-blue-600 transition">Update Invoice</button>
-                        </div>
+                        <button type="button" onClick={addNewItem} className="bg-green-500 text-white px-4 py-2 rounded-lg w-full">
+                            + Add Item
+                        </button>
+                        <div className="text-lg font-bold">Grand Total: ₹ {selectedInvoice?.grandTotal.toFixed(2)}</div>
+                        <input type="number" name="received_amount" value={selectedInvoice?.received_amount} onChange={handleAmountChange} className="border rounded-lg px-3 py-2 w-full" />
+                        <div className="text-lg font-bold">Balance Due: ₹ {selectedInvoice?.balance_due_amount.toFixed(2)}</div>
+                        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-lg w-full">Update Invoice</button>
                     </form>
                 </div>
             </Modal>
-
         </>
-
     );
 };
 

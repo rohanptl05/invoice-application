@@ -4,7 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { deleteInvoice } from "../api/actions/invoiceactions";
 
-const Invoiceitem = ({ invoice,updateInvoice }) => {
+const Invoiceitem = ({ invoice,updateInvoice ,getData }) => {
     const router = useRouter();
 
     return (

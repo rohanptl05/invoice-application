@@ -1,15 +1,24 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ADDinvoice } from "@/app/api/actions/invoiceactions";
+
 
 const AddInvoice = ({ client, getData, onClose }) => {
     const [formData, setFormData] = useState({
         client: client || "",
+        user: typeof window !== "undefined" ? sessionStorage.getItem("id") : "",
         items: [{ item_name: "", item_price: 0, item_quantity: 1, truck_no: "", item_weight: 0, total: 0 }],
         grandTotal: 0,
         received_amount: 0,
         balance_due_amount: 0,
     });
+
+    useEffect(() => {
+        // Ensure user ID is set correctly
+        if (typeof window !== "undefined") {
+            setFormData((prev) => ({ ...prev, user: sessionStorage.getItem("id") || "" }));
+        }
+    }, []);
 
     const updateGrandTotal = (items) => {
         return items.reduce((sum, item) => sum + item.total, 0);
@@ -18,7 +27,7 @@ const AddInvoice = ({ client, getData, onClose }) => {
     const handleChange = (e, index = null) => {
         const { name, value } = e.target;
         const numericValue = name.includes("price") || name.includes("quantity") || name.includes("weight") || name.includes("received_amount")
-            ? Number(value)
+            ? Number(value) || 0
             : value;
 
         if (index !== null) {
@@ -29,11 +38,18 @@ const AddInvoice = ({ client, getData, onClose }) => {
             };
             updatedItems[index].total = updatedItems[index].item_price * updatedItems[index].item_quantity;
             const newGrandTotal = updateGrandTotal(updatedItems);
-            setFormData({ ...formData, items: updatedItems, grandTotal: newGrandTotal, balance_due_amount: newGrandTotal - formData.received_amount });
+            setFormData((prev) => ({
+                ...prev,
+                items: updatedItems,
+                grandTotal: newGrandTotal,
+                balance_due_amount: Math.max(newGrandTotal - prev.received_amount, 0),
+            }));
         } else {
-            const updatedForm = { ...formData, [name]: numericValue };
-            updatedForm.balance_due_amount = updatedForm.grandTotal - updatedForm.received_amount;
-            setFormData(updatedForm);
+            setFormData((prev) => {
+                const updatedForm = { ...prev, [name]: numericValue };
+                updatedForm.balance_due_amount = Math.max(updatedForm.grandTotal - updatedForm.received_amount, 0);
+                return updatedForm;
+            });
         }
     };
 
@@ -41,14 +57,24 @@ const AddInvoice = ({ client, getData, onClose }) => {
         const newItem = { item_name: "", item_price: 0, item_quantity: 1, truck_no: "", item_weight: 0, total: 0 };
         setFormData((prev) => {
             const updatedItems = [...prev.items, newItem];
-            return { ...prev, items: updatedItems, grandTotal: updateGrandTotal(updatedItems), balance_due_amount: updateGrandTotal(updatedItems) - prev.received_amount };
+            return {
+                ...prev,
+                items: updatedItems,
+                grandTotal: updateGrandTotal(updatedItems),
+                balance_due_amount: Math.max(updateGrandTotal(updatedItems) - prev.received_amount, 0),
+            };
         });
     };
 
     const removeItem = (index) => {
         setFormData((prev) => {
             const updatedItems = prev.items.filter((_, i) => i !== index);
-            return { ...prev, items: updatedItems, grandTotal: updateGrandTotal(updatedItems), balance_due_amount: updateGrandTotal(updatedItems) - prev.received_amount };
+            return {
+                ...prev,
+                items: updatedItems,
+                grandTotal: updateGrandTotal(updatedItems),
+                balance_due_amount: Math.max(updateGrandTotal(updatedItems) - prev.received_amount, 0),
+            };
         });
     };
 
@@ -71,8 +97,8 @@ const AddInvoice = ({ client, getData, onClose }) => {
     return (
         <form onSubmit={handleSubmit} className="p-6 border rounded-lg shadow-lg bg-white max-w-3xl mx-auto">
             <div className="mb-4 hidden">
-                <label className=" text-sm font-medium text-gray-700 hidden">Client ID</label>
-                <input type="text" name="client" value={formData.client} readOnly className="w-full border hidden rounded-lg px-3 py-2 bg-gray-100 text-gray-600 shadow-sm" />
+                <label className="text-sm font-medium text-gray-700">Client ID</label>
+                <input type="text" name="client" value={formData.client} readOnly className="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-600 shadow-sm" />
             </div>
             {formData.items.map((item, index) => (
                 <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-center border-b pb-3">
