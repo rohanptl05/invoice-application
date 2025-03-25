@@ -19,6 +19,9 @@ const Page = () => {
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [originalInvoice, setOriginalInvoice] = useState(null);
     const [total_due_amount, setTotalDueAmount] = useState(0);
+     const [modalType, setModalType] = useState("");
+    const [isPaymentModal, setPaymentModal] = useState(false);
+    const [isPaymentInvoice, setPaymentInvoice] = useState([]);
 
     useEffect(() => {
         if (!session) {
@@ -36,6 +39,49 @@ const Page = () => {
             setTotalDueAmount(0);
         }
     }, [invoices]);
+
+    //payments
+    const handlePaymentUpdate = async (e) => {
+        e.preventDefault();
+        try {
+            for (const invoice of isPaymentInvoice) {
+                await editInvoice(invoice.id, {
+                    received_amount: invoice.received_amount,
+                    balance_due_amount: invoice.balance_due_amount
+                });
+            }
+            alert("Payments updated successfully!");
+            await getData();
+            setPaymentModal(false);
+        } catch (error) {
+            console.error("Error updating payments:", error);
+            alert("Failed to update payments.");
+        }
+    };
+
+    const paymentopenModal = () => {
+        setModalType("payment");
+        const updatedInvoices = invoices.map(invoice => ({
+            id: invoice._id,
+            client: invoice.client.name,
+            grandTotal: invoice.grandTotal,
+            received_amount: invoice.received_amount || 0,
+            balance_due_amount: invoice.balance_due_amount || 0
+        }));
+        setPaymentInvoice(updatedInvoices);
+        setPaymentModal(true);
+    };
+
+    const handlePaymentChange = (index, e) => {
+        const { value } = e.target;
+        const received_amount = parseFloat(value) || 0;
+    
+        setPaymentInvoice(prevInvoices => prevInvoices.map((invoice, i) =>
+            i === index ? { ...invoice } : invoice
+        ));
+    };
+
+
 
     const getData = async () => {
         if (!id) {
@@ -222,6 +268,51 @@ const Page = () => {
                         <input type="number" name="received_amount" value={selectedInvoice?.received_amount} onChange={handleAmountChange} className="border rounded-lg px-3 py-2 w-full" />
                         <div className="text-lg font-bold">Balance Due: ₹ {selectedInvoice?.balance_due_amount.toFixed(2)}</div>
                         <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-lg w-full">Update Invoice</button>
+                    </form>
+                </div>
+            </Modal>
+
+
+
+            //payment modal
+
+            <Modal isOpen={isPaymentModal} onClose={() => setModalOpen(false)} title="Edit Invoice">
+                <div className="overflow-y-auto p-4 max-h-[70vh]">
+                    <form onSubmit={handlePaymentUpdate} className="space-y-4">
+                        {isPaymentInvoice.length > 0 ? (
+                            isPaymentInvoice.map((invoice, index) => (
+                                <div key={invoice.id} className="border-b pb-4 mb-4">
+                                    <h3 className="text-lg font-bold text-gray-800">Client: {invoice.client}</h3>
+                                    <p className="text-gray-700">Grand Total: ₹ {invoice.grandTotal.toFixed(2)}</p>
+
+                                    <input
+                                        type="number"
+                                        name="received_amount"
+                                        value={invoice.received_amount}
+                                        onChange={(e) => handlePaymentChange(index, e)}
+                                        className="border rounded-lg px-3 py-2 w-full mt-2"
+                                        placeholder="Received Amount"
+                                    />
+
+                                    <p className="text-gray-700 mt-2">Balance Due: ₹ {invoice.balance_due_amount.toFixed(2)}</p>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-gray-500 text-center">No invoices found</p>
+                        )}
+
+                        <div className="flex justify-end mt-4">
+                            <button
+                                type="submit"
+                                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                                Update Payments
+                            </button>
+                            <button
+                                onClick={() => { setPaymentModal(false); }}
+                                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                                close
+                            </button>
+                        </div>
                     </form>
                 </div>
             </Modal>

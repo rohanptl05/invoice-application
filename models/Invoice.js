@@ -22,8 +22,11 @@ const PaymentHistorySchema = new Schema(
         client: { type: mongoose.Schema.Types.ObjectId, ref: "Client", required: true },
         previous_due_amount: { type: Number, required: true },
         updated_due_amount: { type: Number, required: true },
+        previous_grandTotal:{type:Number},
+        updated_grandTotal:{type:Number},
         payment_received: { type: Number, required: true, min: 0 },
         payment_date: { type: Date, default: Date.now },
+
     },
     { timestamps: true }
 );
@@ -62,11 +65,19 @@ invoiceSchema.pre("save", async function (next) {
         this.grandTotal = parseFloat(this.grandTotal.toFixed(2));
         this.received_amount = parseFloat(this.received_amount.toFixed(2));
 
-        // ✅ Get previous values before updating
-        let previousInvoice = await this.constructor.findById(this._id).lean();
-        let previous_due_amount = previousInvoice ? previousInvoice.balance_due_amount : 0;
-        let previous_received_amount = previousInvoice ? previousInvoice.received_amount : 0;
-        let previous_grandTotal = previousInvoice ? previousInvoice.grandTotal : 0;
+        let previousInvoice = null;
+        let previous_due_amount = 0;
+        let previous_received_amount = 0;
+        let previous_grandTotal = 0;
+
+        if (!this.isNew) {
+            previousInvoice = await this.constructor.findById(this._id).lean();
+            if (previousInvoice) {
+                previous_due_amount = previousInvoice.balance_due_amount;
+                previous_received_amount = previousInvoice.received_amount;
+                previous_grandTotal = previousInvoice.grandTotal;
+            }
+        }
 
         // ✅ Update balance due
         this.balance_due_amount = parseFloat((this.grandTotal - this.received_amount).toFixed(2));
@@ -75,8 +86,10 @@ invoiceSchema.pre("save", async function (next) {
         // ✅ Set status dynamically
         this.status = this.balance_due_amount === 0 ? "PAID" : "PENDING";
 
-        // ✅ Log Payment History on every update of `grandTotal` or `received_amount`
-        if (this.isModified("received_amount") || this.isModified("grandTotal")) {
+        // ✅ Log payment history when invoice is edited
+        if (!this.isNew && (this.received_amount !== previous_received_amount || this.grandTotal !== previous_grandTotal)) {
+            const new_payment = this.received_amount - previous_received_amount;
+
             await PaymentHistory.create({
                 invoice: this._id,
                 client: this.client,
@@ -84,8 +97,8 @@ invoiceSchema.pre("save", async function (next) {
                 updated_due_amount: this.balance_due_amount,
                 previous_grandTotal,
                 updated_grandTotal: this.grandTotal,
-                payment_received: this.received_amount - previous_received_amount,
-                payment_date: Date.now(),
+                payment_received: new_payment > 0 ? new_payment : 0, // ✅ Only store positive payments
+                payment_date: new Date(),
             });
         }
 
@@ -95,8 +108,6 @@ invoiceSchema.pre("save", async function (next) {
         return next(error);
     }
 });
-
-
 
 
 
