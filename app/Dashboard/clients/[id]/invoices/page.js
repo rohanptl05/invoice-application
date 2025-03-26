@@ -3,10 +3,12 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { fetchInvoice, editInvoice } from "@/app/api/actions/invoiceactions";
+import { fetchInvoice, editInvoice, savePaymentHistory, fetchPaymentHistory } from "@/app/api/actions/invoiceactions";
 import Invoiceitem from "@/app/components/Invoiceitem";
 import Modal from "@/app/components/Modal";
 import AddInvoice from "@/app/components/AddInvoice";
+// import { fetchPaymentHistory } from "@/app/api/actions/paymentHistory";
+
 
 const Page = () => {
     const { data: session } = useSession();
@@ -19,9 +21,10 @@ const Page = () => {
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [originalInvoice, setOriginalInvoice] = useState(null);
     const [total_due_amount, setTotalDueAmount] = useState(0);
-     const [modalType, setModalType] = useState("");
+    const [modalType, setModalType] = useState("");
     const [isPaymentModal, setPaymentModal] = useState(false);
     const [isPaymentInvoice, setPaymentInvoice] = useState([]);
+    const [totalReceivedAmount, setTotalReceivedAmount] = useState(0);
 
     useEffect(() => {
         if (!session) {
@@ -43,11 +46,32 @@ const Page = () => {
     //payments
     const handlePaymentUpdate = async (e) => {
         e.preventDefault();
+
         try {
+            const trigger = true
             for (const invoice of isPaymentInvoice) {
-                await editInvoice(invoice.id, {
-                    received_amount: invoice.received_amount,
-                    balance_due_amount: invoice.balance_due_amount
+                const originalInvoice = invoices.find(inv => inv._id === invoice.id);
+                if (!originalInvoice) continue;
+
+                const previous_due_amount = parseFloat(originalInvoice.balance_due_amount);
+                const received_amount = parseFloat(invoice.received_amount) || 0;
+                const updated_due_amount = previous_due_amount - received_amount;
+                const status = updated_due_amount <= 0 ? "PAID" : "PENDING";
+
+
+                await editInvoice(invoice.id, trigger, {
+                    received_amount,
+                    balance_due_amount: updated_due_amount,
+                    status,
+                });
+
+                await savePaymentHistory({
+                    invoiceId: invoice.id,
+                    client: id,
+                    grandTotal: invoice.grandTotal,
+                    previous_due_amount,
+                    updated_due_amount,
+                    payment_received: received_amount,
                 });
             }
             alert("Payments updated successfully!");
@@ -59,25 +83,39 @@ const Page = () => {
         }
     };
 
+
+
+
     const paymentopenModal = () => {
-        setModalType("payment");
-        const updatedInvoices = invoices.map(invoice => ({
-            id: invoice._id,
-            client: invoice.client.name,
-            grandTotal: invoice.grandTotal,
-            received_amount: invoice.received_amount || 0,
-            balance_due_amount: invoice.balance_due_amount || 0
-        }));
+        const updatedInvoices = invoices
+            .filter(invoice => invoice.status === "PENDING")
+            .map(invoice => ({
+                id: invoice._id,
+                client: invoice.client.name,
+                grandTotal: invoice.grandTotal,
+                received_amount: 0,
+                balance_due_amount: invoice.balance_due_amount || 0,
+                invoiceNumber: invoice.invoiceNumber || 0,
+            }));
+
         setPaymentInvoice(updatedInvoices);
-        setPaymentModal(true);
+        if (updatedInvoices.length > 0) {
+            setPaymentModal(true);
+        } else {
+            alert("No pending invoices available for payment.");
+        }
     };
 
     const handlePaymentChange = (index, e) => {
         const { value } = e.target;
         const received_amount = parseFloat(value) || 0;
-    
+
         setPaymentInvoice(prevInvoices => prevInvoices.map((invoice, i) =>
-            i === index ? { ...invoice } : invoice
+            i === index ? {
+                ...invoice,
+                received_amount,
+                new_balance_due_amount: invoice.balance_due_amount - received_amount
+            } : invoice
         ));
     };
 
@@ -100,10 +138,25 @@ const Page = () => {
         }
     };
 
-    const openModal = (invoice) => {
+    const openModal = async (invoice) => {
         setSelectedInvoice(invoice ? { ...invoice } : null);
         setOriginalInvoice(invoice ? { ...invoice } : null);
         setModalOpen(true);
+
+        if (invoice) {
+            try {
+                const paymentData = await fetchPaymentHistory(invoice._id);
+                if (paymentData && paymentData.invoiceHistory) {
+                    const totalReceived = paymentData.invoiceHistory.reduce((sum, record) => sum + (record.payment_received || 0), 0);
+                    setTotalReceivedAmount(totalReceived);
+                } else {
+                    setTotalReceivedAmount(0);
+                }
+            } catch (error) {
+                console.error("Error fetching payment history:", error);
+                setTotalReceivedAmount(0);
+            }
+        }
     };
 
     const handleUpdateInvoice = async (e) => {
@@ -117,13 +170,29 @@ const Page = () => {
             }
         });
 
+        // If no changes are detected, prevent unnecessary updates
         if (Object.keys(updatedFields).length === 0) {
             alert("No changes detected!");
             return;
         }
 
         try {
-            await editInvoice(selectedInvoice._id, updatedFields);
+            const trigger = false
+            // ✅ Ensure grandTotal changes are handled correctly
+            if (selectedInvoice.grandTotal !== originalInvoice.grandTotal) {
+                updatedFields.balance_due_amount = (selectedInvoice.grandTotal - totalReceivedAmount) - selectedInvoice.received_amount;
+            }
+
+            await editInvoice(selectedInvoice._id, trigger, updatedFields);
+            console.log("update :", updatedFields)
+            await savePaymentHistory({
+                invoiceId: selectedInvoice._id,
+                client: id,
+                grandTotal: selectedInvoice.grandTotal,
+                previous_due_amount: selectedInvoice.grandTotal,
+                updated_due_amount: (selectedInvoice.grandTotal - totalReceivedAmount) - selectedInvoice.received_amount,
+                payment_received: (selectedInvoice.received_amount + totalReceivedAmount),
+            });
             alert("Invoice updated successfully!");
             await getData();
             setModalOpen(false);
@@ -132,6 +201,7 @@ const Page = () => {
             alert("Failed to update invoice.");
         }
     };
+
 
     const updateTotalAndGrandTotal = (updatedItems) => {
         const updatedItemsWithTotal = updatedItems.map(item => ({
@@ -177,7 +247,7 @@ const Page = () => {
         setSelectedInvoice((prev) => ({
             ...prev,
             received_amount,
-            balance_due_amount: prev.grandTotal - received_amount
+            balance_due_amount: (prev.grandTotal - totalReceivedAmount) - received_amount
         }));
     };
 
@@ -265,53 +335,49 @@ const Page = () => {
                             + Add Item
                         </button>
                         <div className="text-lg font-bold">Grand Total: ₹ {selectedInvoice?.grandTotal.toFixed(2)}</div>
-                        <input type="number" name="received_amount" value={selectedInvoice?.received_amount} onChange={handleAmountChange} className="border rounded-lg px-3 py-2 w-full" />
+                        <div className="text-lg font-bold text-green-600">Total Received: ₹ {totalReceivedAmount.toFixed(2)}</div>
+                        <label htmlFor="">Received Amount</label>
+                        {/* <input type="number" name="received_amount" value={selectedInvoice?.received_amount} onChange={handleAmountChange} className="border rounded-lg px-3 py-2 w-full" /> */}
+                        <input type="number" name="received_amount" value={selectedInvoice?.totalReceivedAmount} onChange={handleAmountChange} className="border rounded-lg px-3 py-2 w-full" />
                         <div className="text-lg font-bold">Balance Due: ₹ {selectedInvoice?.balance_due_amount.toFixed(2)}</div>
-                        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-lg w-full">Update Invoice</button>
+                        <button type="submit" onClick={(e) => {
+                            e.preventDefault();
+                            if (window.confirm("If you update this invoice, your previous payment data will be erased and new data with the total received amount will be stored. Do you want to continue?")) {
+                                handleUpdateInvoice(e); // Call the submit function if confirmed
+                            }
+                        }} className="bg-blue-500 text-white px-4 py-2 rounded-lg w-full">Update Invoice</button>
+                        <p className="text-red-500">(Note: If you update this invoice, your previous payment data will be erased and new data with the total received amount will be stored)</p>
                     </form>
                 </div>
             </Modal>
 
 
 
-            //payment modal
+            {/* //payment modal */}
 
-            <Modal isOpen={isPaymentModal} onClose={() => setModalOpen(false)} title="Edit Invoice">
-                <div className="overflow-y-auto p-4 max-h-[70vh]">
+            <Modal isOpen={isPaymentModal} onClose={() => setPaymentModal(false)} title="payment Invoice">
+                <div className="p-4 max-h-[70vh] overflow-y-auto">
                     <form onSubmit={handlePaymentUpdate} className="space-y-4">
-                        {isPaymentInvoice.length > 0 ? (
-                            isPaymentInvoice.map((invoice, index) => (
-                                <div key={invoice.id} className="border-b pb-4 mb-4">
-                                    <h3 className="text-lg font-bold text-gray-800">Client: {invoice.client}</h3>
-                                    <p className="text-gray-700">Grand Total: ₹ {invoice.grandTotal.toFixed(2)}</p>
+                        {isPaymentInvoice.map((invoice, index) => (
+                            <div key={invoice.id} className="border-b pb-4 mb-4">
+                                <h3 className="text-lg font-bold">#{invoice.invoiceNumber}</h3>
+                                <p>Grand Total: ₹ {invoice.grandTotal.toFixed(2)}</p>
+                                <p>Balance Due: ₹ {invoice.balance_due_amount.toFixed(2)}</p>
 
-                                    <input
-                                        type="number"
-                                        name="received_amount"
-                                        value={invoice.received_amount}
-                                        onChange={(e) => handlePaymentChange(index, e)}
-                                        className="border rounded-lg px-3 py-2 w-full mt-2"
-                                        placeholder="Received Amount"
-                                    />
-
-                                    <p className="text-gray-700 mt-2">Balance Due: ₹ {invoice.balance_due_amount.toFixed(2)}</p>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-gray-500 text-center">No invoices found</p>
-                        )}
-
+                                <input
+                                    type="number"
+                                    name="received_amount"
+                                    value={invoice.received_amount}
+                                    onChange={(e) => handlePaymentChange(index, e)}
+                                    className="border px-3 py-2 w-full mt-2"
+                                    placeholder="Received Amount"
+                                />
+                                <p>New Balance Due: ₹ {invoice.new_balance_due_amount}</p>
+                            </div>
+                        ))}
                         <div className="flex justify-end mt-4">
-                            <button
-                                type="submit"
-                                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
-                                Update Payments
-                            </button>
-                            <button
-                                onClick={() => { setPaymentModal(false); }}
-                                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
-                                close
-                            </button>
+                            <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-lg">Update Payments</button>
+                            <button onClick={() => setPaymentModal(false)} className="bg-gray-500 text-white px-4 py-2 rounded-lg ml-2">Close</button>
                         </div>
                     </form>
                 </div>
