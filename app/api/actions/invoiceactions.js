@@ -4,6 +4,7 @@ import connectDB from "@/db/connectDb"
 import Client from "@/models/Client";
 import {Invoice,PaymentHistory} from "@/models/Invoice";
 import mongoose from "mongoose";
+import { ReceivedAmount } from "@/models/ReceivedAmount";
 
 export const fetchInvoice = async (id) => {
     await connectDB();
@@ -20,23 +21,53 @@ export const fetchInvoice = async (id) => {
       
 //delete invoice
 
-export const deleteInvoice = async (id) =>{
+// export const deleteInvoice = async (id) =>{
 
-await connectDB();
-try{
-let invoice =await Invoice.findByIdAndDelete(id);
+// await connectDB();
+// try{
+// let invoice =await Invoice.findByIdAndDelete(id);
   
-if (!invoice) {
-  return { error: "invoice not found" };
-}
+// if (!invoice) {
+//   return { error: "invoice not found" };
+// }
+// if(invoice){
+//    const payment = await PaymentHistory.deleteMany({invoice:id})
+//    const received = await ReceivedAmount.deleteMany({invoice:id})
+// }
 
-return { success: true, message: "invoice deleted successfully" }
-} catch (error) {
-console.error("Error deleting invoice:", error);
-return { error: "Failed to delete invoice" };
-}
+// return { success: true, message: "invoice deleted successfully" }
+// } catch (error) {
+// console.error("Error deleting invoice:", error);
+// return { error: "Failed to delete invoice" };
+// }
 
-}
+// }
+
+export const deleteInvoice = async (id) => {
+    try {
+      await connectDB(); // ✅ Ensure DB connection before proceeding
+  
+      // ✅ Find and delete invoice
+      const invoice = await Invoice.findByIdAndDelete(id);
+      if (!invoice) {
+        return { error: "Invoice not found" };
+      }
+  
+      // ✅ Delete associated payment history & received amounts
+      const [paymentResult, receivedResult] = await Promise.all([
+        PaymentHistory.deleteMany({ invoice: id }),
+        ReceivedAmount.deleteMany({ invoice: id })
+      ]);
+  
+      console.log(`Deleted ${paymentResult.deletedCount} payment records`);
+      console.log(`Deleted ${receivedResult.deletedCount} received amount records`);
+  
+      return { success: true, message: "Invoice deleted successfully" };
+    } catch (error) {
+      console.error("Error deleting invoice:", error);
+      return { error: "Failed to delete invoice" };
+    }
+  };
 
 
 //edit invoice

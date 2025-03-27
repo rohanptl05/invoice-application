@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { ADDinvoice } from "@/app/api/actions/invoiceactions";
+import { ADDinvoice, savePaymentHistory } from "@/app/api/actions/invoiceactions";
+import { saveReceivedAmount } from "../api/actions/receivedamount";
+
 
 
 const AddInvoice = ({ client, getData, onClose }) => {
@@ -81,11 +83,32 @@ const AddInvoice = ({ client, getData, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // ✅ Create Invoice
             const invoice = await ADDinvoice(formData);
-            if (invoice) {
+
+            if (invoice && invoice._id) {  // ✅ Ensure invoice is created and has an ID
                 alert("Invoice stored successfully!");
-                getData();
-                onClose();
+                getData(); // Refresh data
+                onClose(); // Close the form
+
+                // ✅ Now save received payment against the newly created invoice
+                await saveReceivedAmount({
+                    invoiceId: invoice._id,  // Use the returned invoice ID
+                    client: formData.client,
+                    payment_received: formData.received_amount,
+                });
+
+
+                await savePaymentHistory({
+                    invoiceId: invoice._id,
+                    client: formData.client,
+                    grandTotal: formData.grandTotal,
+                    previous_due_amount: 0,
+                    updated_due_amount: parseFloat(formData.grandTotal - formData.received_amount),
+                    payment_received: formData.received_amount,
+                });
+
+
             } else {
                 alert("Failed to store invoice.");
             }

@@ -54,38 +54,38 @@ invoiceSchema.pre("save", async function (next) {
             return next(new Error("Grand total does not match sum of item totals."));
         }
 
-        this.grandTotal = parseFloat(this.grandTotal.toFixed(2));
+        // this.grandTotal = parseFloat(this.grandTotal.toFixed(2));
 
-        // Capture previous received amount and balance
-        const existingInvoice = await this.constructor.findById(this._id);
-        const previous_received_amount = existingInvoice ? existingInvoice.received_amount : 0;
-        const previous_due_amount = existingInvoice ? existingInvoice.balance_due_amount : this.grandTotal;
+        // // Capture previous received amount and balance
+        // const existingInvoice = await this.constructor.findById(this._id);
+        // const previous_received_amount = existingInvoice ? existingInvoice.received_amount : 0;
+        // const previous_due_amount = existingInvoice ? existingInvoice.balance_due_amount : this.grandTotal;
 
-        // Ensure received_amount is a valid float
-        this.received_amount = parseFloat(this.received_amount.toFixed(2));
-        this.status = this.balance_due_amount === 0 ? "PAID" : "PENDING";
+        // // Ensure received_amount is a valid float
+        // this.received_amount = parseFloat(this.received_amount.toFixed(2));
+        // this.status = this.balance_due_amount === 0 ? "PAID" : "PENDING";
 
-        // Calculate new balance due
-        this.balance_due_amount = parseFloat((this.grandTotal - this.received_amount).toFixed(2));
-        this.balance_due_amount = Math.max(this.balance_due_amount, 0);
+        // // Calculate new balance due
+        // this.balance_due_amount = parseFloat((this.grandTotal - this.received_amount).toFixed(2));
+        // this.balance_due_amount = Math.max(this.balance_due_amount, 0);
 
-        next(); // ✅ Proceed to save the invoice first
+        // next(); // ✅ Proceed to save the invoice first
 
-        // Log PaymentHistory **after** invoice is successfully saved
-        if (this.isModified("received_amount") || this.isNew) {
-            const payment_received = this.received_amount - previous_received_amount;
+        // // Log PaymentHistory **after** invoice is successfully saved
+        // if (this.isModified("received_amount") || this.isNew) {
+        //     const payment_received = this.received_amount - previous_received_amount;
 
-            if (payment_received > 0 || this.received_amount || this.grandTotal) {
-                await PaymentHistory.create({
-                    invoice: this._id,
-                    client: this.client,
-                    grandTotal: this.grandTotal,
-                    previous_due_amount,
-                    updated_due_amount: this.balance_due_amount,
-                    payment_received,
-                }).catch(err => console.error("PaymentHistory save error:", err));
-            }
-        }
+        //     if (payment_received > 0 || this.received_amount || this.grandTotal) {
+        //         await PaymentHistory.create({
+        //             invoice: this._id,
+        //             client: this.client,
+        //             grandTotal: this.grandTotal,
+        //             previous_due_amount,
+        //             updated_due_amount: this.balance_due_amount,
+        //             payment_received,
+        //         }).catch(err => console.error("PaymentHistory save error:", err));
+        //     }
+        // }
 
     } catch (error) {
         console.error("Error in invoice pre-save middleware:", error);

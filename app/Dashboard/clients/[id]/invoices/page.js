@@ -7,7 +7,7 @@ import { fetchInvoice, editInvoice, savePaymentHistory, fetchPaymentHistory } fr
 import Invoiceitem from "@/app/components/Invoiceitem";
 import Modal from "@/app/components/Modal";
 import AddInvoice from "@/app/components/AddInvoice";
-// import { fetchPaymentHistory } from "@/app/api/actions/paymentHistory";
+import { saveReceivedAmount } from "@/app/api/actions/receivedamount";
 
 
 const Page = () => {
@@ -64,6 +64,12 @@ const Page = () => {
                     balance_due_amount: updated_due_amount,
                     status,
                 });
+
+                await saveReceivedAmount({
+                    invoiceId: invoice.id,
+                    client: id,
+                    payment_received:received_amount,
+                })
 
                 await savePaymentHistory({
                     invoiceId: invoice.id,
@@ -185,6 +191,9 @@ const Page = () => {
 
             await editInvoice(selectedInvoice._id, trigger, updatedFields);
             console.log("update :", updatedFields)
+
+
+
             await savePaymentHistory({
                 invoiceId: selectedInvoice._id,
                 client: id,
@@ -193,6 +202,14 @@ const Page = () => {
                 updated_due_amount: (selectedInvoice.grandTotal - totalReceivedAmount) - selectedInvoice.received_amount,
                 payment_received: (selectedInvoice.received_amount + totalReceivedAmount),
             });
+
+            await saveReceivedAmount({
+                invoiceId: selectedInvoice._id,
+                client: id,
+                payment_received: selectedInvoice.received_amount ,
+            })
+
+
             alert("Invoice updated successfully!");
             await getData();
             setModalOpen(false);
@@ -292,7 +309,7 @@ const Page = () => {
                     <h2>Invoice List</h2>
                     {invoices.length > 0 ? (
                         invoices.map((invoice) => (
-                            <Invoiceitem key={invoice._id} invoice={invoice} updateInvoice={() => openModal(invoice)} />
+                            <Invoiceitem key={invoice._id} invoice={invoice}  getData={getData} updateInvoice={() => openModal(invoice)} />
                         ))
                     ) : (
                         <p>No invoices available</p>

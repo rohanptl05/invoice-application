@@ -1,11 +1,16 @@
 "use client";
 
-import React from "react";
+import React,{useEffect} from "react";
 import { useRouter } from "next/navigation";
 import { deleteInvoice } from "../api/actions/invoiceactions";
 
 const Invoiceitem = ({ invoice,updateInvoice ,getData }) => {
     const router = useRouter();
+
+
+     useEffect(() => {
+          getData()
+        }, [deleteInvoice]);
 
     return (
         <div className="border p-3 mb-2 shadow rounded bg-white flex items-center justify-between min-h-[80px]">
