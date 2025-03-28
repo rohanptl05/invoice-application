@@ -92,3 +92,17 @@ export const AddClient = async (data) => {
         return { error: "Database error: " + error.message };
     }
 };
+
+
+export const fetchSingleclient = async (id) => {
+    await connectDb();
+    // console.log("Fetching clients with ID:", id);
+
+    let clients = await Client.find({ _id:id }); // ✅ Correct usage for multiple results
+
+    if (!clients || clients.length === 0) {
+        return { error: "No clients found" };
+    }
+
+    return  { clients : JSON.parse(JSON.stringify(clients)) }
+};

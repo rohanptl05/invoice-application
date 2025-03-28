@@ -7,7 +7,8 @@ import { fetchInvoice, editInvoice, savePaymentHistory, fetchPaymentHistory } fr
 import Invoiceitem from "@/app/components/Invoiceitem";
 import Modal from "@/app/components/Modal";
 import AddInvoice from "@/app/components/AddInvoice";
-import { saveReceivedAmount } from "@/app/api/actions/receivedamount";
+import { saveReceivedAmount } from "@/app/api/actions/receivedamountactions";
+import { Model } from "mongoose";
 
 
 const Page = () => {
@@ -49,6 +50,7 @@ const Page = () => {
 
         try {
             const trigger = true
+            const action = "payment"
             for (const invoice of isPaymentInvoice) {
                 const originalInvoice = invoices.find(inv => inv._id === invoice.id);
                 if (!originalInvoice) continue;
@@ -65,10 +67,10 @@ const Page = () => {
                     status,
                 });
 
-                await saveReceivedAmount({
+                await saveReceivedAmount(action,{
                     invoiceId: invoice.id,
                     client: id,
-                    payment_received:received_amount,
+                    payment_received: received_amount,
                 })
 
                 await savePaymentHistory({
@@ -184,13 +186,14 @@ const Page = () => {
 
         try {
             const trigger = false
+             const action = "update"
             // ✅ Ensure grandTotal changes are handled correctly
             if (selectedInvoice.grandTotal !== originalInvoice.grandTotal) {
                 updatedFields.balance_due_amount = (selectedInvoice.grandTotal - totalReceivedAmount) - selectedInvoice.received_amount;
             }
 
             await editInvoice(selectedInvoice._id, trigger, updatedFields);
-            console.log("update :", updatedFields)
+            // console.log("update :", updatedFields)
 
 
 
@@ -203,10 +206,10 @@ const Page = () => {
                 payment_received: (selectedInvoice.received_amount + totalReceivedAmount),
             });
 
-            await saveReceivedAmount({
+            await saveReceivedAmount(action,{
                 invoiceId: selectedInvoice._id,
                 client: id,
-                payment_received: selectedInvoice.received_amount ,
+                payment_received: selectedInvoice.received_amount,
             })
 
 
@@ -309,7 +312,7 @@ const Page = () => {
                     <h2>Invoice List</h2>
                     {invoices.length > 0 ? (
                         invoices.map((invoice) => (
-                            <Invoiceitem key={invoice._id} invoice={invoice}  getData={getData} updateInvoice={() => openModal(invoice)} />
+                            <Invoiceitem key={invoice._id} invoice={invoice} getData={getData} updateInvoice={() => openModal(invoice)} />
                         ))
                     ) : (
                         <p>No invoices available</p>
@@ -353,9 +356,9 @@ const Page = () => {
                         </button>
                         <div className="text-lg font-bold">Grand Total: ₹ {selectedInvoice?.grandTotal.toFixed(2)}</div>
                         <div className="text-lg font-bold text-green-600">Total Received: ₹ {totalReceivedAmount.toFixed(2)}</div>
-                        <label htmlFor="">Received Amount</label>
+                        <label className="hidden" htmlFor="">Received Amount</label>
                         {/* <input type="number" name="received_amount" value={selectedInvoice?.received_amount} onChange={handleAmountChange} className="border rounded-lg px-3 py-2 w-full" /> */}
-                        <input type="number" name="received_amount" value={selectedInvoice?.totalReceivedAmount} onChange={handleAmountChange} className="border rounded-lg px-3 py-2 w-full" />
+                        <input type="number" name="received_amount" value={selectedInvoice?.totalReceivedAmount} onChange={handleAmountChange} className="border  rounded-lg px-3 py-2 w-full" />
                         <div className="text-lg font-bold">Balance Due: ₹ {selectedInvoice?.balance_due_amount.toFixed(2)}</div>
                         <button type="submit" onClick={(e) => {
                             e.preventDefault();
@@ -367,6 +370,8 @@ const Page = () => {
                     </form>
                 </div>
             </Modal>
+
+        
 
 
 

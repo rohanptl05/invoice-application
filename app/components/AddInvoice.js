@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { ADDinvoice, savePaymentHistory } from "@/app/api/actions/invoiceactions";
-import { saveReceivedAmount } from "../api/actions/receivedamount";
+import { saveReceivedAmount } from "../api/actions/receivedamountactions";
 
 
 

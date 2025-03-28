@@ -7,7 +7,7 @@ import { fetchInvoice, editInvoice } from "@/app/api/actions/invoiceactions";
 import Invoiceitem from "@/app/components/Invoiceitem";
 import Modal from "@/app/components/Modal";
 import AddInvoice from "@/app/components/AddInvoice";
-import {savePaymentHistory} from "@/app/api/actions/paymentHistory";
+import {savePaymentHistory} from "@/app/api/actions/paymentHistoryactions";
 
 const Page = () => {
     const { data: session } = useSession();

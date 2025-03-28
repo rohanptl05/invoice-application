@@ -19,29 +19,7 @@ export const fetchInvoice = async (id) => {
     return invoices.map(invoice => invoice.toObject({ flattenObjectIds: true }));
 };
       
-//delete invoice
 
-// export const deleteInvoice = async (id) =>{
-
-// await connectDB();
-// try{
-// let invoice =await Invoice.findByIdAndDelete(id);
-  
-// if (!invoice) {
-//   return { error: "invoice not found" };
-// }
-// if(invoice){
-//    const payment = await PaymentHistory.deleteMany({invoice:id})
-//    const received = await ReceivedAmount.deleteMany({invoice:id})
-// }
-
-// return { success: true, message: "invoice deleted successfully" }
-// } catch (error) {
-// console.error("Error deleting invoice:", error);
-// return { error: "Failed to delete invoice" };
-// }
-
-// }
 
 export const deleteInvoice = async (id) => {
     try {
@@ -210,75 +188,26 @@ export const fetchPaymentHistory = async (invoiceId) => {
     }
 };
 
+// invoicesDetalis
+export const fetchInvoiceDetails = async (id) => {
+    await connectDB(); // ✅ Ensure DB is connected only once
+
+    try {
+        const invoice = await Invoice.findById(id).lean(); 
+
+        if (!invoice) {
+            return { error: "Invoice not found" };
+        }
 
 
-// export const editInvoice = async (id, data) => {
-//     await connectDB();
-
-//     console.log("Updating Invoice with Data:", data);
-
-//     // Check if the invoice exists and fetch the old data
-//     const invoiceExists = await Invoice.findById(id);
-//     if (!invoiceExists) {
-//         return { error: "Invoice does not exist" };
-//     }
-
-//     try {
-//         // ✅ Update invoice status based on balance due, if available
-//         if (typeof data.balance_due_amount !== "undefined") {
-//             data.status = data.balance_due_amount === 0 ? "PAID" : "PENDING";
-//         }
-
-//         // ✅ Reset payment history only if grandTotal has significantly changed
-//         if (Math.abs(invoiceExists.grandTotal - data.grandTotal) > 0.01) {
-//             await PaymentHistory.deleteMany({ invoice: id });
-//         }
-
-//         // ✅ Update invoice with new values
-//         const updatedInvoice = await Invoice.findByIdAndUpdate(
-//             id,
-//             { $set: data },
-//             { new: true, runValidators: true }
-//         );
-
-//         return {
-//             success: "Invoice updated successfully",
-//             invoice: updatedInvoice,
-//         };
-//     } catch (error) {
-//         console.error("Error updating invoice:", error);
-//         return { error: "Failed to update invoice" };
-//     }
-// };
-
-// export const savePaymentHistory = async (data) => {
-//     await connectDB();
-
-//     try {
-//         // ✅ Check if the invoice exists
-//         const invoiceExists = await Invoice.exists({ _id: data.invoiceId });
-//         if (!invoiceExists) {
-//             return { error: "Invoice not found" };
-//         }
-
-//         // ✅ Ensure payment_received is a valid number
-//         const paymentReceived = data.payment_received ?? 0;
-
-//         const newPayment = new PaymentHistory({
-//             invoice: new mongoose.Types.ObjectId(data.invoiceId),
-//             client: new mongoose.Types.ObjectId(data.client),
-//             grandTotal: data.grandTotal,
-//             previous_due_amount: data.previous_due_amount,
-//             payment_received: paymentReceived,
-//             updated_due_amount: data.updated_due_amount,
-//             payment_date: new Date(),
-//         });
-
-//         await newPayment.save();
-
-//         return { success: "Payment history saved successfully" };
-//     } catch (error) {
-//         console.error("Error saving payment history:", error);
-//         return { error: "Failed to save payment history" };
-//     }
-// };
+        // ✅ Convert _id and nested ObjectId fields to strings
+        return {
+            success: true,
+            invoice: JSON.parse(JSON.stringify(invoice)),
+           
+        };
+    } catch (error) {
+        console.error("Error fetching invoice:", error);
+        return { error: "Failed to retrieve invoice details" };
+    }
+};
