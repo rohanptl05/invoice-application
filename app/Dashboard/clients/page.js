@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { fetchclient, updateClient } from "@/app/api/actions/clientactions";
@@ -23,7 +23,7 @@ const Page = () => {
     }
   }, [session]);
 
-  const getData = async () => {
+  const getData = useCallback(async () => {
     const userId = sessionStorage.getItem("id");
     if (!userId) return;
     try {
@@ -32,7 +32,7 @@ const Page = () => {
     } catch (error) {
       console.error("Error fetching clients:", error);
     }
-  };
+  }, []);
 
   const handleOpenEditModal = (client) => {
     setSelectedClient(client);
@@ -48,8 +48,14 @@ const Page = () => {
 
   const handleOpenAddClientModal = () => setIsAddClientOpen(true);
   const handleCloseAddClientModal = () => setIsAddClientOpen(false);
-  
+
   const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "phone") {
+      const phoneNumber = value.replace(/\D/g, ""); // Remove non-digit characters
+      setEditedClient({ ...editedClient, [name]: phoneNumber });
+      return;
+    }
     setEditedClient({ ...editedClient, [e.target.name]: e.target.value });
   };
 
@@ -70,11 +76,11 @@ const Page = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <input
           type="text"
           placeholder="Search clients..."
-          className="w-full max-w-md px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full sm:w-2/3 px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
         <button
           onClick={handleOpenAddClientModal}
@@ -84,7 +90,8 @@ const Page = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"> */}
+      <div className="w-full sm:flex-col">
         {clients.length > 0 ? (
           clients.map((client) => (
             <ClientList key={client._id} client={client} updateClient={handleOpenEditModal} getData={getData} />
@@ -100,20 +107,20 @@ const Page = () => {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 animate-fadeIn overflow-y-auto max-h-[90vh]">
             <h3 className="text-xl font-semibold text-gray-900">Add New Client</h3>
             <Addclient onClose={handleCloseAddClientModal} getData={getData} />
-            <button
+            {/* <button
               onClick={handleCloseAddClientModal}
               className="mt-4 bg-gray-200 text-gray-900 px-5 py-2.5 rounded-lg hover:bg-gray-300"
             >
               Close
-            </button>
+            </button> */}
           </div>
         </div>
       )}
 
       {/* Edit Client Modal */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 animate-fadeIn">
+        <div className="fixed inset-0 flex items-center justify-center transform-content  z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6  animate-fadeIn">
             <h3 className="text-xl font-semibold text-gray-900">Edit Client</h3>
             {editedClient ? (
               <form className="space-y-3">
@@ -137,9 +144,25 @@ const Page = () => {
                   type="text"
                   name="phone"
                   value={editedClient.phone}
-                  onChange={handleEditChange}
+                  onChange={(e) => {
+                    const phoneNumber = e.target.value.replace(/\D/g, ""); // Remove non-digit characters
+                    if (phoneNumber.length <= 10) {
+                      setEditedClient({ ...editedClient, phone: phoneNumber });
+                    }
+                  }}
                   className="w-full p-2 border rounded-lg"
                   placeholder="Phone"
+                />
+                {editedClient.phone.length !== 10 && (
+                  <p className="text-red-500 text-sm">Phone number must be exactly 10 digits.</p>
+                )}
+                <textarea
+                  type="text"
+                  name="address"
+                  value={editedClient.address}
+                  onChange={handleEditChange}
+                  className="w-full p-2 border rounded-lg"
+                  placeholder="Address"
                 />
               </form>
             ) : (

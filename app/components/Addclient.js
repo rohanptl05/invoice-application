@@ -65,18 +65,20 @@ const Addclient = ({ getData, onClose, onSubmit, initialData }) => {
 
     {/* Phone Field */}
     <div>
-      <label className="block text-sm font-semibold text-gray-700">Phone</label>
-      <input
-        type="tel"
-        name="phone"
-        value={formData.phone}
-        onChange={handleChange}
-        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-        placeholder="Enter phone number"
-        maxLength="10"
-        required
-      />
-    </div>
+  <label className="block text-sm font-semibold text-gray-700">Phone</label>
+  <input
+    type="tel"
+    name="phone"
+    value={formData.phone}
+    onChange={handleChange}
+    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+    placeholder="Enter phone number"
+    maxLength="10"
+    pattern="\d{10}"  // Ensures only 10-digit numbers are allowed
+    title="Phone number must be exactly 10 digits"
+    required
+  />
+</div>
 
     {/* Address Field */}
     <div>

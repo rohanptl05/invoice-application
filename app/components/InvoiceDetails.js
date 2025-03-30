@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
-import { editReceivedAmount } from "../api/actions/receivedamountactions";
+import { editReceivedAmount, deleteReceivedAmount } from "../api/actions/receivedamountactions";
+import { editInvoice,savePaymentHistory } from "../api/actions/invoiceactions";
 
 const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
   const [ispayment, setIspayment] = useState([]);
@@ -8,6 +9,7 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
   const [isclient, setIsclient] = useState({});
   const [openModal, SetModal] = useState(false);
   const [editedPayment, setEditedPayment] = useState(null);
+  const [totalReceivedAmount, setTotalReceivedAmount] = useState(0);
 
   useEffect(() => {
     if (invoice) {
@@ -21,6 +23,17 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
     }
   }, [invoice, client, payments]);
 
+  useEffect(() => {
+    if (ispayment.length > 0) {
+      const totalReceived = ispayment.reduce((sum, record) => sum + (record.payment_received || 0), 0);
+      setTotalReceivedAmount(totalReceived);
+      // console.log("Updated Total Received Amount:", totalReceived);
+    } else {
+      setTotalReceivedAmount(0);
+    }
+  }, [ispayment]);
+
+
   const handleEdit = (payment) => {
     setEditedPayment({ ...payment });
     SetModal(true);
@@ -33,22 +46,92 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
     });
   };
 
+ 
+
+
   const handleSave = async () => {
     if (editedPayment) {
-      // onSavePayment(editedPayment); // Ensure `onSavePayment` is passed as a prop
-      // console.log(editedPayment)
-      const response = await editReceivedAmount(editedPayment.id, editedPayment)
+      const response = await editReceivedAmount(editedPayment.id, editedPayment);
       if (response.success) {
         alert("Update successful");
         setIspayment((prevPayments) =>
           prevPayments.map((payment) =>
-            payment.id === editedPayment.id ? editedPayment : payment
+            payment.id === editedPayment.id ? { ...payment, ...editedPayment } : payment
           )
         );
+
+        const updatedTotalReceived = ispayment.reduce((sum, record) =>
+          sum + (record.id === editedPayment.id ? Number(editedPayment.payment_received) : record.payment_received || 0), 0);
+
+        const updatedInvoice = {
+          ...isinvoice,
+          balance_due_amount: isinvoice.grandTotal - updatedTotalReceived,
+          received_amount: updatedTotalReceived,
+        };
+
+        const invoiceResponse = await editInvoice(isinvoice._id, false, updatedInvoice);
+        if (invoiceResponse.success) {
+          alert("Invoice updated successfully");
+          setIsInvoice(updatedInvoice);
+          const paymentHistoryResponse = await savePaymentHistory({
+            invoiceId: isinvoice._id,
+            client: isclient._id,
+            grandTotal: isinvoice.grandTotal,
+            previous_due_amount: isinvoice.balance_due_amount,
+            payment_received: editedPayment.payment_received,
+            updated_due_amount: updatedInvoice.balance_due_amount,
+            payment_date: editedPayment.payment_date,
+
+          });
+          if (paymentHistoryResponse.success) {
+            alert("Payment history updated successfully");
+          } else {
+            alert("Failed to update payment history");
+          }
+        } else {
+          alert("Failed to update invoice");
+        }
+
+        setEditedPayment(null);
+        SetModal(false);
       }
-      SetModal(false);
     }
   };
+
+
+
+  const handleDeletePayment = async (paymentId) => {
+    if (window.confirm("Are you sure you want to delete this payment?")) {
+      const response = await deleteReceivedAmount(paymentId);
+      if (response.success) {
+        alert("Payment deleted successfully");
+        setIspayment((prevPayments) => prevPayments.filter((payment) => payment.id !== paymentId));
+
+        const updatedTotalReceived = ispayment
+          .filter((payment) => payment.id !== paymentId)
+          .reduce((sum, record) => sum + (record.payment_received || 0), 0);
+
+        const updatedInvoice = {
+          ...isinvoice,
+          balance_due_amount: isinvoice.grandTotal - updatedTotalReceived,
+          received_amount: updatedTotalReceived,
+        };
+
+        const invoiceResponse = await editInvoice(isinvoice._id, false, updatedInvoice);
+        if (invoiceResponse.success) {
+          alert("Invoice updated successfully");
+
+          setIsInvoice(updatedInvoice);
+        } else {
+          alert("Failed to update invoice");
+        }
+      } else {
+        alert("Failed to delete payment");
+      }
+    }
+  };
+
+
 
   if (!isinvoice) return <p>Loading invoice...</p>;
 
@@ -127,59 +210,44 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
         )}
 
         {/* Payment History Section */}
-        <div className="container mt-7">
+         <div className="container mt-7">
           <div className="max-w-4xl mx-auto p-6 bg-white shadow rounded-lg">
             <h2 className="text-xl font-semibold mt-6 mb-2">Payment History</h2>
-
             {ispayment.length > 0 ? (
               <table className="w-full border-collapse border">
                 <thead>
                   <tr className="bg-gray-200 text-center">
-                    <th className="border px-4 py-2 text-left">Date</th>
-                    <th className="border px-4 py-2 text-left">
-                      Received Amount (₹)
-                    </th>
-                    <th className="border px-4 py-2 text-left">Actions</th>
+                    <th className="border px-4 py-2">Date</th>
+                    <th className="border px-4 py-2">Received Amount (₹)</th>
+                    <th className="border px-4 py-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ispayment.map((payment, index) => (
                     <tr key={index}>
-                      <td className="border px-4 py-2">
-                        {new Date(payment.payment_date).toLocaleDateString(
-                          "en-GB"
-                        )}
-                      </td>
-                      <td className="border px-4 py-2">
-                        ₹{payment.payment_received}
-                      </td>
-                      <td className="border px-4 py-2 items-center">
-                        <button
-                          onClick={() => handleEdit(payment)}
-                          type="button"
-                          className="text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-2 py-1 me-2 mb-1"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="text-white bg-red-500 hover:bg-red-600 font-medium rounded-lg text-sm px-2 py-1 me-2 mb-1"
-                        >
-                          Delete
-                        </button>
+                      <td className="border px-4 py-2 text-center">{new Date(payment.payment_date).toLocaleDateString("en-GB")}</td>
+                      <td className="border px-4 py-2 text-center">₹{payment.payment_received}</td>
+                      <td className="border px-4 py-2 text-center">
+                        <button onClick={() => handleEdit(payment)} className="text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-2 py-1 me-2">Edit</button>
+                        <button onClick={() => handleDeletePayment(payment.id)} className="text-white bg-red-500 hover:bg-red-600 font-medium rounded-lg text-sm px-2 py-1">Delete</button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan="2" className="border px-4 py-2 text-right font-bold">Total Received Amount:</td>
+                    <td className="border px-4 py-2 text-center font-bold">₹{totalReceivedAmount}</td>
+                  </tr>
+                </tfoot>
               </table>
             ) : (
-              <p className="text-gray-600 text-center mt-4">
-                No payment history available.
-              </p>
+              <p className="text-gray-600 text-center mt-4">No payment history available.</p>
             )}
           </div>
         </div>
       </div>
+
 
       {/* Edit Payment Modal */}
       {openModal && (

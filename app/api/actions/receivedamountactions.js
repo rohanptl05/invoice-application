@@ -16,7 +16,7 @@ export const saveReceivedAmount = async (action,data) => {
         }
         if(action === "update"){
 
-            const invoice = await ReceivedAmount.findById(data.invoiceId).lean();
+            const receivedRecord = await ReceivedAmount.findOne({ invoice: data.invoiceId }).lean();
             if(invoice){
             await ReceivedAmount.findOneAndUpdate(
                 { _id: data.invoiceId },
@@ -52,7 +52,7 @@ export const fetchReceivedAmount = async (id) => {
  
         const amounts = await ReceivedAmount.find({ invoice: id });
         if (!amounts || amounts.length === 0) {
-            return { error: "No Received Amount found" }; // ✅ Proper error response
+            return []; // ✅ Proper error response
         }
 
         return amounts.map(amount => amount.toObject({ flattenObjectIds: true })); // ✅ Correct variable usage
@@ -92,3 +92,21 @@ export const editReceivedAmount = async (id, data) => {
       return { error: "Failed to edit received amount" }; // ✅ Catch unexpected errors
     }
   };
+
+
+
+  export const deleteReceivedAmount = async (id) => {
+    try {
+        await connectDB(); // ✅ Ensure DB connection before proceeding
+
+        // ✅ Find and delete invoice
+        const amount = await ReceivedAmount.findByIdAndDelete(id);
+        if (!amount) {
+            return { error: "Received Amount not found" };
+        }
+
+        return { success: true, message: "Received Amount deleted successfully" };
+    } catch (error) {
+        console.error("Error deleting received amount:", error);
+        return { error: "Failed to delete received amount" };
+    }   }

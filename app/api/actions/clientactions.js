@@ -2,6 +2,8 @@
 
 import connectDb from "@/db/connectDb"
 import Client from "@/models/Client";
+import { Invoice, PaymentHistory } from "@/models/Invoice";
+import { ReceivedAmount } from "@/models/ReceivedAmount";
 import mongoose from "mongoose";
 
 
@@ -9,7 +11,7 @@ export const fetchclient = async (id) => {
     await connectDb();
     // console.log("Fetching clients with ID:", id);
 
-    let clients = await Client.find({ user: id }); // ✅ Correct usage for multiple results
+    let clients = await Client.find({ user: id }).sort({ createdAt: -1 }); // ✅ Correct usage for multiple results
 
     if (!clients || clients.length === 0) {
         return { error: "No clients found" };
@@ -20,22 +22,25 @@ export const fetchclient = async (id) => {
 
 export const deleteClient = async (id) => {
     try {
-      await connectDb();
-      console.log("Deleting client:", id);
-  
-      const client = await Client.findByIdAndDelete(id);
-  
-      if (!client) {
-        return { error: "Client not found" };
-      }
-  
-      return { success: true, message: "Client deleted successfully" };
+        await connectDb();
+        // console.log("Deleting client:", id);
+
+        const client = await Client.findByIdAndDelete(id);
+        const invoice = await Invoice.deleteMany({ client: id });
+        const paymentHistory = await PaymentHistory.deleteMany({ client: id });
+        const receivedAmount = await ReceivedAmount.deleteMany({ client: id });
+
+        if (!client) {
+            return { error: "Client not found" };
+        }
+
+        return { success: true, message: "Client deleted successfully" };
     } catch (error) {
-      console.error("Error deleting client:", error);
-      return { error: "Failed to delete client" };
+        console.error("Error deleting client:", error);
+        return { error: "Failed to delete client" };
     }
-  };
-  
+};
+
 export const updateClient = async (data, id) => {
     await connectDb();
 
@@ -84,9 +89,9 @@ export const AddClient = async (data) => {
             address: data.address
         });
 
-      
-            return { success: "Client Added", client: JSON.parse(JSON.stringify(newClient)) };
-        
+
+        return { success: "Client Added", client: JSON.parse(JSON.stringify(newClient)) };
+
     } catch (error) {
         console.error("Error adding client:", error);
         return { error: "Database error: " + error.message };
@@ -98,11 +103,11 @@ export const fetchSingleclient = async (id) => {
     await connectDb();
     // console.log("Fetching clients with ID:", id);
 
-    let clients = await Client.find({ _id:id }); // ✅ Correct usage for multiple results
+    let clients = await Client.find({ _id: id }); // ✅ Correct usage for multiple results
 
     if (!clients || clients.length === 0) {
         return { error: "No clients found" };
     }
 
-    return  { clients : JSON.parse(JSON.stringify(clients)) }
+    return { clients: JSON.parse(JSON.stringify(clients)) }
 };

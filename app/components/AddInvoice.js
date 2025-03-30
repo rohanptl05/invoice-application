@@ -82,6 +82,7 @@ const AddInvoice = ({ client, getData, onClose }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const action = "create"; // Define the action type
         try {
             // ✅ Create Invoice
             const invoice = await ADDinvoice(formData);
@@ -92,12 +93,12 @@ const AddInvoice = ({ client, getData, onClose }) => {
                 onClose(); // Close the form
 
                 // ✅ Now save received payment against the newly created invoice
-                await saveReceivedAmount({
+                if(formData.received_amount > 0) {
+                await saveReceivedAmount(action,{
                     invoiceId: invoice._id,  // Use the returned invoice ID
                     client: formData.client,
                     payment_received: formData.received_amount,
                 });
-
 
                 await savePaymentHistory({
                     invoiceId: invoice._id,
@@ -107,6 +108,11 @@ const AddInvoice = ({ client, getData, onClose }) => {
                     updated_due_amount: parseFloat(formData.grandTotal - formData.received_amount),
                     payment_received: formData.received_amount,
                 });
+
+            }
+
+
+                
 
 
             } else {

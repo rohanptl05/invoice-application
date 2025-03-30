@@ -25,32 +25,32 @@ const ClientList = ({ client, updateClient, getData }) => {
     }
   };
   return (
-    <div className='w-full bg-blue-300 p-2.5 border-4 m-2 rounded-b-2xl flex justify-between'>
+    <div className="w-full bg-blue-300 p-4 border-1 m-2 rounded-2xl flex flex-col sm:flex-row justify-between items-center">
+  {/* Client Info */}
+  <div className="flex flex-col sm:flex-row sm:items-center">
+    <Link href={`/dashboard/clients/${client._id}/invoices`} className="">
+      <p className="text-lg font-semibold text-gray-900">{client.name}</p>
+      <p className="text-sm text-gray-700">{client.phone}</p>
+    </Link>
+  </div>
 
-      <div className='flex'>
-        <Link href={`/dashboard/clients/${client._id}/invoices`}>
-          <p>{client.name}</p>
-          <p>{client.email}</p>
-        </Link>
+  {/* Action Buttons */}
+  <div className="flex mt-2 sm:mt-0">
+    <button
+      onClick={() => updateClient(client)}
+      className="bg-blue-700 p-2 px-4 rounded-xl text-white hover:bg-blue-800 transition duration-300 shadow-md"
+    >
+      Edit
+    </button>
+    <button
+      onClick={handleDelete}
+      className="bg-red-600 p-2 px-4 ml-2 rounded-xl text-white hover:bg-red-700 transition duration-300 shadow-md"
+    >
+      Delete
+    </button>
+  </div>
+</div>
 
-      </div>
-
-      <div className='flex'>
-        <button
-          onClick={() => updateClient(client)}
-          className='bg-blue-700 p-2 m-1 rounded-2xl flex text-white'
-        >
-          Edit
-        </button>
-        <button
-          onClick={handleDelete}
-          className='bg-red-600 p-2 m-1 rounded-2xl flex text-white'
-        >
-          Delete
-        </button>
-      </div>
-
-    </div>
   );
 };
 
