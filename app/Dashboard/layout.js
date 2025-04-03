@@ -42,7 +42,7 @@ export default function RootLayout({ children }) {
   if (session) {
     return (
       <>
-        <div className="container w-screen h-screen flex flex-col md:flex-row min-h-screen text-black">
+        <div className="container w-screen h-full flex flex-col md:flex-row min-h-screen text-black">
           {/* Top Bar (Mobile View) */}
           <div className="bg-slate-700 p-3 flex justify-between items-center md:hidden">
             <b className="text-white text-lg">Dashboard</b>

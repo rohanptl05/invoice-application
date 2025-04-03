@@ -4,14 +4,14 @@ import { useSession } from "next-auth/react";
 import { deleteClient } from '../api/actions/clientactions';
 // import Invoices from './Invoices';
 
-const ClientList = ({ client, updateClient, getData }) => {
+const ClientList = ({ client, updateClient ,getData}) => {
   const { data: session } = useSession();
   useEffect(() => {
     if (!session) {
       router.push("/");
     } else {
 
-      getData();
+      // getData();
     }
   }, [deleteClient]);
   const handleDelete = async () => {
@@ -25,32 +25,33 @@ const ClientList = ({ client, updateClient, getData }) => {
     }
   };
   return (
-    <div className="w-full bg-blue-300 p-4 border-1 m-2 rounded-2xl flex flex-col sm:flex-row justify-between items-center">
-  {/* Client Info */}
-  <div className="flex flex-col sm:flex-row sm:items-center">
-    <Link href={`/dashboard/clients/${client._id}/invoices`} className="">
-      <p className="text-lg font-semibold text-gray-900">{client.name}</p>
-      <p className="text-sm text-gray-700">{client.phone}</p>
-    </Link>
-  </div>
-
-  {/* Action Buttons */}
-  <div className="flex mt-2 sm:mt-0">
-    <button
-      onClick={() => updateClient(client)}
-      className="bg-blue-700 p-2 px-4 rounded-xl text-white hover:bg-blue-800 transition duration-300 shadow-md"
-    >
-      Edit
-    </button>
-    <button
-      onClick={handleDelete}
-      className="bg-red-600 p-2 px-4 ml-2 rounded-xl text-white hover:bg-red-700 transition duration-300 shadow-md"
-    >
-      Delete
-    </button>
-  </div>
-</div>
-
+    <tr className=" hover:bg-gray-50 transition text-left duration-300 border-b">
+    {/* Client Info */}
+    <td className="px-6 py-4 font-medium text-gray-900">
+      <Link href={`/dashboard/clients/${client._id}/invoices`} className="hover:text-blue-600">
+        {client.name}
+      </Link>
+    </td>
+    <td className="px-6 py-4 text-gray-700">{client.email}</td>
+    <td className="px-6 py-4 text-gray-700">{client.phone}</td>
+    {/* Action Buttons */}
+    <td className="px-6 py-4 flex justify-center space-x-2">
+      <button
+        onClick={() => updateClient(client)}
+        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md"
+      >
+        Edit
+      </button>
+      <button
+        onClick={handleDelete}
+        className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-300 shadow-md"
+      >
+        Delete
+      </button>
+    </td>
+  </tr>
+  
+  
   );
 };
 

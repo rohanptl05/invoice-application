@@ -10,7 +10,7 @@ export const fetchInvoice = async (id) => {
     await connectDB();
 
    
-    let invoices = await Invoice.find({ client: id }).populate("client").sort({ createdAt: -1 });
+    let invoices = await Invoice.find({ client: id }).populate("client").sort({ date: -1 });
 
     if (!invoices || invoices.length === 0) {
         return { error: "No invoices found" };

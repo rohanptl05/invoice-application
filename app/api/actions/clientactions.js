@@ -5,6 +5,7 @@ import Client from "@/models/Client";
 import { Invoice, PaymentHistory } from "@/models/Invoice";
 import { ReceivedAmount } from "@/models/ReceivedAmount";
 import mongoose from "mongoose";
+import { NextResponse } from "next/server";
 
 
 export const fetchclient = async (id) => {
@@ -111,3 +112,29 @@ export const fetchSingleclient = async (id) => {
 
     return { clients: JSON.parse(JSON.stringify(clients)) }
 };
+
+export const fetchSearchClient = async (id, search) => {
+    await connectDb();
+    // console.log(search, id, "search client")
+    
+    let clients = await Client.aggregate([
+        {
+            $match: {
+                user: new mongoose.Types.ObjectId(id), // Filter by user ID
+                $or: [
+                    { name: { $regex: search, $options: "i" } },  // Partial match, case-insensitive
+                    { email: { $regex: search, $options: "i" } },
+                    { phone: { $regex: search, $options: "i" } }
+                ]
+            }
+        }
+    ]).sort({ createdAt: -1 });
+
+    if (!clients || clients.length === 0) {
+        return { error: "No clients found" };
+    }
+
+   
+    return { clients: JSON.parse(JSON.stringify(clients)) }
+};
+

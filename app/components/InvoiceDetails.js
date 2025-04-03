@@ -62,7 +62,7 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
 
         const updatedTotalReceived = ispayment.reduce((sum, record) =>
           sum + (record.id === editedPayment.id ? Number(editedPayment.payment_received) : record.payment_received || 0), 0);
-
+        setTotalReceivedAmount(updatedTotalReceived);
         const updatedInvoice = {
           ...isinvoice,
           balance_due_amount: isinvoice.grandTotal - updatedTotalReceived,
@@ -111,6 +111,7 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
           .filter((payment) => payment.id !== paymentId)
           .reduce((sum, record) => sum + (record.payment_received || 0), 0);
 
+        setTotalReceivedAmount(updatedTotalReceived);
         const updatedInvoice = {
           ...isinvoice,
           balance_due_amount: isinvoice.grandTotal - updatedTotalReceived,
