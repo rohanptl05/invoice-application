@@ -35,6 +35,8 @@ const Page = () => {
     const [totalAmountSort, setTotalAmountSort] = useState("");
     const [dueAmountSort, setDueAmountSort] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [fromDate, setFromDate] = useState("");
+    const [toDate, setToDate] = useState("");
 
     useEffect(() => {
         if (!session) {
@@ -212,7 +214,7 @@ const Page = () => {
             setInvoices([]);
         }
     };
-    
+
     const openModal = async (invoice) => {
         setSelectedInvoice(invoice ? { ...invoice } : null);
         setOriginalInvoice(invoice ? { ...invoice } : null);
@@ -337,6 +339,8 @@ const Page = () => {
         if (type === "status") setSelectedStatus(value);
         if (type === "totalAmount") setTotalAmountSort(value);
         if (type === "dueAmount") setDueAmountSort(value);
+        if (type === "from") setFromDate(value);
+        if (type === "to") setToDate(value);
     };
 
     useEffect(() => {
@@ -348,6 +352,19 @@ const Page = () => {
         if (selectedStatus !== "all") {
             filteredInvoices = filteredInvoices.filter(invoice => invoice.status === selectedStatus);
         }
+
+
+         // Date Filter — only if both are set
+         if (fromDate && toDate) {
+            const from = new Date(`${fromDate}T00:00:00`);
+            const to = new Date(`${toDate}T23:59:59`);
+        
+            filteredInvoices = filteredInvoices.filter(invoice => {
+                const invoiceDate = new Date(invoice.date);
+                return invoiceDate >= from && invoiceDate <= to;
+            });
+        }
+        
 
         // Sorting by Total Amount
         if (totalAmountSort === "Low") {
@@ -364,17 +381,17 @@ const Page = () => {
         }
 
         setInvoices(filteredInvoices);
-    }, [selectedStatus, totalAmountSort, dueAmountSort, originalInvoices]);
+    }, [selectedStatus, totalAmountSort, dueAmountSort, originalInvoices, fromDate, toDate]);
 
-  
+
 
     const itemsPerPage = 6; // Set the number of items per page
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-   
+
     const paginatedInvoices = (Array.isArray(invoices) ? invoices : []).slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil((Array.isArray(invoices) ? invoices.length : 0) / itemsPerPage);
-    
+
     const handleNextPage = () => {
         if (currentPage < totalPages) setCurrentPage(currentPage + 1);
     };
@@ -382,7 +399,7 @@ const Page = () => {
     const handlePrevPage = () => {
         if (currentPage > 1) setCurrentPage(currentPage - 1);
     };
-  
+
     return (
         <>
             <div className="container h-screen ">
@@ -436,6 +453,15 @@ const Page = () => {
                                 </select>
                             </div>
 
+
+                            {/* to between date filter */}
+                            <div>
+                                <label htmlFor="from" className="text-sm font-medium text-gray-700">From:</label>
+                                <input type="date" id="from" className="border rounded-lg px-3 py-2" onChange={(e) => handleFilterChange(e, "from")} />
+                                <label htmlFor="to" className="text-sm font-medium text-gray-700"> to:</label>
+                                <input type="date" id="to" className="border rounded-lg px-3 py-2" disabled={!fromDate} onChange={(e) => handleFilterChange(e, "to")} />
+                            </div>
+
                             {/* Total Amount Sort */}
                             <div className="flex items-center gap-2">
                                 <label htmlFor="amount" className="text-sm font-medium text-gray-700">Total Amount</label>
@@ -461,9 +487,9 @@ const Page = () => {
                     <hr className="m-1" />
 
                     {invoices && invoices.length > 0 ? (
-                       <div className="w-full overflow-x-auto  shadow-md rounded-lg">
-                           <table className="w-full border-collapse min-w-[600px] text-center">
-                           <thead className="bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 uppercase text-sm tracking-wider">
+                        <div className="w-full overflow-x-auto  shadow-md rounded-lg">
+                            <table className="w-full border-collapse min-w-[600px] text-center">
+                                <thead className="bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 uppercase text-sm tracking-wider">
                                     <tr>
                                         <th className="px-6 py-3 border-b">Invoice #</th>
                                         <th className="px-6 py-3 border-b">Date</th>
@@ -484,34 +510,34 @@ const Page = () => {
                     ) : (
                         <p className="text-center text-gray-500">No invoices available</p>
                     )
-                    
-                    
-                    
-                    
+
+
+
+
                     }
 
-                   
+
                 </div>
 
                 <div className="flex justify-center items-center  mt-4">
-                        <button
-                            onClick={handlePrevPage}
-                            disabled={currentPage === 1}
-                            className={`px-4 py-2 mx-1 rounded ${currentPage === 1 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
-                        >
-                            Previous
-                        </button>
-                        <span className="mx-4 text-lg font-semibold">
-                            Page {currentPage} of {totalPages}
-                        </span>
-                        <button
-                            onClick={handleNextPage}
-                            disabled={currentPage === totalPages}
-                            className={`px-4 py-2 mx-1 rounded ${currentPage === totalPages ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
-                        >
-                            Next
-                        </button>
-                    </div>
+                    <button
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 1}
+                        className={`px-4 py-2 mx-1 rounded ${currentPage === 1 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
+                    >
+                        Previous
+                    </button>
+                    <span className="mx-4 text-lg font-semibold">
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        className={`px-4 py-2 mx-1 rounded ${currentPage === totalPages ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
+                    >
+                        Next
+                    </button>
+                </div>
 
 
 
@@ -538,158 +564,158 @@ const Page = () => {
 
             {/* edit modal */}
             <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title="Edit Invoice">
-            <div className="overflow-y-auto p-4">
-    <form onSubmit={handleUpdateInvoice} className="space-y-6">
-        
-        {/* Invoice Details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           
+                <div className="overflow-y-auto p-4">
+                    <form onSubmit={handleUpdateInvoice} className="space-y-6">
 
-            <div>
-            <label className="block mb-2">
-              <span className="text-gray-700"> Date</span>
-              <input
-                type="date"
-                name="payment_date"
-                value={
-                  selectedInvoice?.date
-                    ? new Date(selectedInvoice.date).toISOString().split("T")[0] // ✅ Correct format
-                    : ""
-                }
-             onChange={(e) => {
-                    setSelectedInvoice((prev) => ({
-                        ...prev,
-                        date: e.target.value,
-                    }));
-                    
+                        {/* Invoice Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-             }}
-                className="w-full p-2 border rounded"
-              />
-            </label>
-            </div>
-        </div>
 
-        <hr className="border-gray-300" />
+                            <div>
+                                <label className="block mb-2">
+                                    <span className="text-gray-700"> Date</span>
+                                    <input
+                                        type="date"
+                                        name="payment_date"
+                                        value={
+                                            selectedInvoice?.date
+                                                ? new Date(selectedInvoice.date).toISOString().split("T")[0] // ✅ Correct format
+                                                : ""
+                                        }
+                                        onChange={(e) => {
+                                            setSelectedInvoice((prev) => ({
+                                                ...prev,
+                                                date: e.target.value,
+                                            }));
 
-        {/* Invoice Items */}
-        <div className="space-y-6">
-            {selectedInvoice?.items?.map((item, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end border-b pb-4">
-                    
-                    <div>
-                        <label className="block text-gray-700 font-semibold">Item Name</label>
-                        <input 
-                            type="text" 
-                            name="item_name" 
-                            value={item.item_name} 
-                            onChange={(e) => handleItemChange(index, e)} 
-                            className="border rounded-lg px-3 py-2 w-full" 
-                            placeholder="Item Name" 
-                        />
-                    </div>
 
-                    <div>
-                        <label className="block text-gray-700 font-semibold">Price</label>
-                        <input 
-                            type="number" 
-                            name="item_price" 
-                            value={item.item_price} 
-                            onChange={(e) => handleItemChange(index, e)} 
-                            className="border rounded-lg px-3 py-2 w-full" 
-                            placeholder="Price" 
-                        />
-                    </div>
+                                        }}
+                                        className="w-full p-2 border rounded"
+                                    />
+                                </label>
+                            </div>
+                        </div>
 
-                    <div>
-                        <label className="block text-gray-700 font-semibold">Quantity</label>
-                        <input 
-                            type="number" 
-                            name="item_quantity" 
-                            value={item.item_quantity} 
-                            onChange={(e) => handleItemChange(index, e)} 
-                            className="border rounded-lg px-3 py-2 w-full" 
-                            placeholder="Quantity" 
-                        />
-                    </div>
+                        <hr className="border-gray-300" />
 
-                    <div>
-                        <label className="block text-gray-700 font-semibold">Truck No</label>
-                        <input 
-                            type="text" 
-                            name="truck_no" 
-                            value={item.truck_no} 
-                            onChange={(e) => handleItemChange(index, e)} 
-                            className="border rounded-lg px-3 py-2 w-full" 
-                            placeholder="Truck No" 
-                        />
-                    </div>
+                        {/* Invoice Items */}
+                        <div className="space-y-6">
+                            {selectedInvoice?.items?.map((item, index) => (
+                                <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end border-b pb-4">
 
-                    <div>
-                        <label className="block text-gray-700 font-semibold">Total</label>
-                        <input 
-                            type="text" 
-                            value={`₹ ${(item.total || 0).toFixed(2)}`} 
-                            readOnly 
-                            className="border bg-gray-100 rounded-lg px-3 py-2 w-full" 
-                        />
-                    </div>
+                                    <div>
+                                        <label className="block text-gray-700 font-semibold">Item Name</label>
+                                        <input
+                                            type="text"
+                                            name="item_name"
+                                            value={item.item_name}
+                                            onChange={(e) => handleItemChange(index, e)}
+                                            className="border rounded-lg px-3 py-2 w-full"
+                                            placeholder="Item Name"
+                                        />
+                                    </div>
 
-                    <button 
-                        type="button" 
-                        onClick={() => removeItem(index)} 
-                        className="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 w-full"
-                    >
-                        Remove
-                    </button>
+                                    <div>
+                                        <label className="block text-gray-700 font-semibold">Price</label>
+                                        <input
+                                            type="number"
+                                            name="item_price"
+                                            value={item.item_price}
+                                            onChange={(e) => handleItemChange(index, e)}
+                                            className="border rounded-lg px-3 py-2 w-full"
+                                            placeholder="Price"
+                                        />
+                                    </div>
 
+                                    <div>
+                                        <label className="block text-gray-700 font-semibold">Quantity</label>
+                                        <input
+                                            type="number"
+                                            name="item_quantity"
+                                            value={item.item_quantity}
+                                            onChange={(e) => handleItemChange(index, e)}
+                                            className="border rounded-lg px-3 py-2 w-full"
+                                            placeholder="Quantity"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-gray-700 font-semibold">Truck No</label>
+                                        <input
+                                            type="text"
+                                            name="truck_no"
+                                            value={item.truck_no}
+                                            onChange={(e) => handleItemChange(index, e)}
+                                            className="border rounded-lg px-3 py-2 w-full"
+                                            placeholder="Truck No"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-gray-700 font-semibold">Total</label>
+                                        <input
+                                            type="text"
+                                            value={`₹ ${(item.total || 0).toFixed(2)}`}
+                                            readOnly
+                                            className="border bg-gray-100 rounded-lg px-3 py-2 w-full"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => removeItem(index)}
+                                        className="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 w-full"
+                                    >
+                                        Remove
+                                    </button>
+
+                                </div>
+                            ))}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={addNewItem}
+                            className="bg-green-500 text-white px-4 py-2 rounded-lg w-full"
+                        >
+                            + Add Item
+                        </button>
+
+                        <hr className="border-gray-300" />
+
+                        {/* Summary */}
+                        <div className="space-y-2 text-lg font-bold">
+                            <div className="flex justify-between">
+                                <span>Grand Total:</span>
+                                <span>₹ {selectedInvoice?.grandTotal.toFixed(2)}</span>
+                            </div>
+
+                            <div className="flex justify-between text-green-600">
+                                <span>Total Received:</span>
+                                <span>₹ {totalReceivedAmount.toFixed(2)}</span>
+                            </div>
+
+                            <div className="flex justify-between">
+                                <span>Balance Due:</span>
+                                <span>₹ {(selectedInvoice?.grandTotal - totalReceivedAmount).toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (window.confirm("If you update this invoice, your previous payment data will be erased and new data with the total received amount will be stored. Do you want to continue?")) {
+                                    handleUpdateInvoice(e);
+                                }
+                            }}
+                            className="bg-blue-500 text-white px-4 py-2 rounded-lg w-full"
+                        >
+                            Update Invoice
+                        </button>
+
+                    </form>
                 </div>
-            ))}
-        </div>
-
-        <button 
-            type="button" 
-            onClick={addNewItem} 
-            className="bg-green-500 text-white px-4 py-2 rounded-lg w-full"
-        >
-            + Add Item
-        </button>
-
-        <hr className="border-gray-300" />
-
-        {/* Summary */}
-        <div className="space-y-2 text-lg font-bold">
-            <div className="flex justify-between">
-                <span>Grand Total:</span>
-                <span>₹ {selectedInvoice?.grandTotal.toFixed(2)}</span>
-            </div>
-
-            <div className="flex justify-between text-green-600">
-                <span>Total Received:</span>
-                <span>₹ {totalReceivedAmount.toFixed(2)}</span>
-            </div>
-
-            <div className="flex justify-between">
-                <span>Balance Due:</span>
-                <span>₹ {(selectedInvoice?.grandTotal - totalReceivedAmount).toFixed(2)}</span>
-            </div>
-        </div>
-
-        <button 
-            type="submit" 
-            onClick={(e) => {
-                e.preventDefault();
-                if (window.confirm("If you update this invoice, your previous payment data will be erased and new data with the total received amount will be stored. Do you want to continue?")) {
-                    handleUpdateInvoice(e);
-                }
-            }} 
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg w-full"
-        >
-            Update Invoice
-        </button>
-
-    </form>
-</div>
 
             </Modal>
 

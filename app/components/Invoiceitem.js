@@ -28,7 +28,7 @@ const Invoiceitem = ({ invoice, updateInvoice ,getData}) => {
     };
 
     return (
-        <tr className="bg-white hover:bg-gray-50 transition duration-300 border-b">
+        <tr className=" hover:bg-gray-50 transition duration-300 border-b">
         {/* Invoice Number */}
         <td className="px-6 py-4 font-medium text-gray-900">
             {invoice.invoiceNumber}

@@ -2,14 +2,14 @@
 
 import connectDB from "@/db/connectDb"
 import Client from "@/models/Client";
-import {Invoice,PaymentHistory} from "@/models/Invoice";
+import { Invoice, PaymentHistory } from "@/models/Invoice";
 import mongoose from "mongoose";
 import { ReceivedAmount } from "@/models/ReceivedAmount";
 
 export const fetchInvoice = async (id) => {
     await connectDB();
 
-   
+
     let invoices = await Invoice.find({ client: id }).populate("client").sort({ date: -1 });
 
     if (!invoices || invoices.length === 0) {
@@ -18,40 +18,40 @@ export const fetchInvoice = async (id) => {
 
     return invoices.map(invoice => invoice.toObject({ flattenObjectIds: true }));
 };
-      
+
 
 
 export const deleteInvoice = async (id) => {
     try {
-      await connectDB(); // ✅ Ensure DB connection before proceeding
-  
-      // ✅ Find and delete invoice
-      const invoice = await Invoice.findByIdAndDelete(id);
-      if (!invoice) {
-        return { error: "Invoice not found" };
-      }
-  
-      // ✅ Delete associated payment history & received amounts
-      const [paymentResult, receivedResult] = await Promise.all([
-        PaymentHistory.deleteMany({ invoice: id }),
-        ReceivedAmount.deleteMany({ invoice: id })
-      ]);
-  
-      console.log(`Deleted ${paymentResult.deletedCount} payment records`);
-      console.log(`Deleted ${receivedResult.deletedCount} received amount records`);
-  
-      return { success: true, message: "Invoice deleted successfully" };
+        await connectDB(); // ✅ Ensure DB connection before proceeding
+
+        // ✅ Find and delete invoice
+        const invoice = await Invoice.findByIdAndDelete(id);
+        if (!invoice) {
+            return { error: "Invoice not found" };
+        }
+
+        // ✅ Delete associated payment history & received amounts
+        const [paymentResult, receivedResult] = await Promise.all([
+            PaymentHistory.deleteMany({ invoice: id }),
+            ReceivedAmount.deleteMany({ invoice: id })
+        ]);
+
+        console.log(`Deleted ${paymentResult.deletedCount} payment records`);
+        console.log(`Deleted ${receivedResult.deletedCount} received amount records`);
+
+        return { success: true, message: "Invoice deleted successfully" };
     } catch (error) {
-      console.error("Error deleting invoice:", error);
-      return { error: "Failed to delete invoice" };
+        console.error("Error deleting invoice:", error);
+        return { error: "Failed to delete invoice" };
     }
-  };
+};
 
 
 //edit invoice
 
 
-export const editInvoice = async (id,trigger ,data) => {
+export const editInvoice = async (id, trigger, data) => {
     await connectDB();
     // console.log("Updating Invoice with Data:", data);
 
@@ -151,7 +151,7 @@ export const ADDinvoice = async (data) => {
 
         const newInvoice = await Invoice.create({
             client: new mongoose.Types.ObjectId(data.client),
-            user : new mongoose.Types.ObjectId(data.user),
+            user: new mongoose.Types.ObjectId(data.user),
             items: data.items,
             grandTotal: data.grandTotal,
             received_amount: receivedAmount,
@@ -178,9 +178,9 @@ export const fetchPaymentHistory = async (invoiceId) => {
             return { error: "No payment history found for this invoice" };
         }
 
-        return { 
-            success: "Payment history retrieved successfully", 
-            invoiceHistory: JSON.parse(JSON.stringify(invoiceHistory)) 
+        return {
+            success: "Payment history retrieved successfully",
+            invoiceHistory: JSON.parse(JSON.stringify(invoiceHistory))
         };
     } catch (error) {
         console.error("Error fetching payment history:", error);
@@ -193,7 +193,7 @@ export const fetchInvoiceDetails = async (id) => {
     await connectDB(); // ✅ Ensure DB is connected only once
 
     try {
-        const invoice = await Invoice.findById(id).lean(); 
+        const invoice = await Invoice.findById(id).lean();
 
         if (!invoice) {
             return { error: "Invoice not found" };
@@ -204,10 +204,100 @@ export const fetchInvoiceDetails = async (id) => {
         return {
             success: true,
             invoice: JSON.parse(JSON.stringify(invoice)),
-           
+
         };
     } catch (error) {
         console.error("Error fetching invoice:", error);
         return { error: "Failed to retrieve invoice details" };
+    }
+};
+
+
+// 
+
+
+
+
+
+// export const fetchClientsWithInvoices = async (userId) => {
+//     await connectDB();
+
+//     try {
+//         const clients = await Client.find({ user: userId });
+
+//         if (!clients || clients.length === 0) {
+//             return { error: "No clients found for this user." };
+//         }
+
+//         const clientIds = clients.map((client) => client._id);
+//         const invoices = await Invoice.find({ client: { $in: clientIds } }).sort({ date: -1 });
+
+//         if (!invoices || invoices.length === 0) {
+//             return { error: "No invoices found for any client." };
+//         }
+
+//         // Filter only clients that have invoices
+//         const mergedData = clients
+//             .map((client) => {
+//                 const relatedInvoices = invoices.filter(
+//                     (invoice) => invoice.client.toString() === client._id.toString()
+//                 );
+
+//                 // Only return clients with at least one invoice
+//                 if (relatedInvoices.length > 0) {
+//                     return {
+//                         client: JSON.parse(JSON.stringify(client)),
+//                         invoices: relatedInvoices.map((inv) => JSON.parse(JSON.stringify(inv))),
+//                     };
+//                 } else {
+//                     return null; // skip if no invoices
+//                 }
+//             })
+//             .filter(Boolean); // Remove nulls
+
+//         if (mergedData.length === 0) {
+//             return { error: "No invoices found for any client." };
+//         }
+
+//         return {
+//             success: true,
+//             clientsWithInvoices: mergedData,
+//         };
+//     } catch (error) {
+//         console.error("Error fetching merged client-invoice data:", error);
+//         return { error: "Failed to fetch data." };
+//     }
+// };
+
+export const fetchClientsWithInvoices = async (userId) => {
+    await connectDB();
+
+    try {
+        // Step 1: Find all clients for the given user
+        const clients = await Client.find({ user: userId }).lean();
+
+        if (!clients || clients.length === 0) {
+            return { error: "No clients found for this user." };
+        }
+
+        const clientIds = clients.map((client) => client._id);
+
+        // Step 2: Find invoices belonging to these clients, populate client data
+        const invoices = await Invoice.find({ client: { $in: clientIds } })
+            .populate("client")
+            .sort({ date: -1 })
+            .lean();
+
+        if (!invoices || invoices.length === 0) {
+            return { error: "No invoices found for any client." };
+        }
+
+        return {
+            success: true,
+            invoices: JSON.parse(JSON.stringify(invoices)),
+        };
+    } catch (error) {
+        console.error("Error fetching invoices with populated clients:", error);
+        return { error: "Failed to fetch data." };
     }
 };

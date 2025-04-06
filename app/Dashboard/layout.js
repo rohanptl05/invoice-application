@@ -76,8 +76,13 @@ export default function RootLayout({ children }) {
                   </Link>
                 </li>
                 <li className="w-full">
-                  <Link className="block px-4 py-2 rounded-2xl hover:bg-green-500" href="/dashboard/extra-expences" onClick={handleLinkClick}>
-                    Extra Expences
+                  <Link className="block px-4 py-2 rounded-2xl hover:bg-green-500" href="/dashboard/extra-expenses" onClick={handleLinkClick}>
+                    Extra Expenses
+                  </Link>
+                </li>
+                <li className="w-full">
+                  <Link className="block px-4 py-2 rounded-2xl hover:bg-green-500" href="/dashboard/report" onClick={handleLinkClick}>
+                    Report
                   </Link>
                 </li>
                 <li className="w-full">
