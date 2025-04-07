@@ -258,8 +258,14 @@ const Page = () => {
             const trigger = false
             const action = "update"
             // ✅ Ensure grandTotal changes are handled correctly
-            if (selectedInvoice.grandTotal !== originalInvoice.grandTotal) {
+            if (selectedInvoice.grandTotal === originalInvoice.grandTotal) {
+                updatedFields.received_amount = totalReceivedAmount || 0;
                 updatedFields.balance_due_amount = (selectedInvoice.grandTotal - totalReceivedAmount) || 0;
+                // updatedFields.grandTotal = selectedInvoice.grandTotal;
+            }
+            if (selectedInvoice.grandTotal !== originalInvoice.grandTotal) {
+                updatedFields.received_amount = totalReceivedAmount || 0;
+                updatedFields.balance_due_amount = selectedInvoice.grandTotal - totalReceivedAmount || 0;
                 updatedFields.grandTotal = selectedInvoice.grandTotal;
             }
 
