@@ -35,6 +35,7 @@ const invoiceSchema = new Schema({
     grandTotal: { type: Number, required: true, min: 0 },
     received_amount: { type: Number, required: true, min: 0 }, // ✅ Stored as Float
     balance_due_amount: { type: Number, required: true, min: 0, default: 0 }, // ✅ Stored as Float
+    imageURL: { type: String, default: "" }, 
     date: { type: Date, default: Date.now },
 }, { timestamps: true });
 

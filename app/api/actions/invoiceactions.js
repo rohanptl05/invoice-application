@@ -155,7 +155,8 @@ export const ADDinvoice = async (data) => {
             items: data.items,
             grandTotal: data.grandTotal,
             received_amount: receivedAmount,
-            balance_due_amount: Math.max(balanceDue, 0), // Prevent negative balance
+            balance_due_amount: Math.max(balanceDue, 0),
+            imageURL:data.imageURL, // Prevent negative balance
         });
 
         // ✅ Convert the Mongoose document to a plain JSON object

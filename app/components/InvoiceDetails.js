@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
 import { editReceivedAmount, deleteReceivedAmount } from "../api/actions/receivedamountactions";
-import { editInvoice,savePaymentHistory } from "../api/actions/invoiceactions";
+import { editInvoice, savePaymentHistory } from "../api/actions/invoiceactions";
+import Image from "next/image";
 
 const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
   const [ispayment, setIspayment] = useState([]);
@@ -46,7 +47,7 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
     });
   };
 
- 
+
 
 
   const handleSave = async () => {
@@ -140,7 +141,7 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
     <>
       <div className="container">
         {isinvoice?.items?.length > 0 ? (
-          <div className="max-w-4xl mx-auto p-6 bg-white shadow rounded-lg">
+          <div className="max-w-4xl mx-auto p-6  shadow shadow-gray-400 rounded-lg">
             <h1 className="text-2xl font-bold mb-4">Invoice Details</h1>
             <div className="border p-4 rounded-md shadow-sm">
               <p className="text-lg">
@@ -164,7 +165,7 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
             </div>
 
             <h2 className="text-xl font-semibold mt-6 mb-2">Items</h2>
-            <table className="w-full border-collapse border">
+            <table className="w-full border-collapse border ">
               <thead>
                 <tr className="bg-gray-200">
                   <th className="border px-4 py-2">Item</th>
@@ -211,8 +212,8 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
         )}
 
         {/* Payment History Section */}
-         <div className="container mt-7">
-          <div className="max-w-4xl mx-auto p-6 bg-white shadow rounded-lg">
+        <div className="container mt-7">
+          <div className="max-w-4xl mx-auto p-6  shadow rounded-lg">
             <h2 className="text-xl font-semibold mt-6 mb-2">Payment History</h2>
             {ispayment.length > 0 ? (
               <table className="w-full border-collapse border">
@@ -247,6 +248,28 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
             )}
           </div>
         </div>
+
+        {isinvoice?.imageURL && (
+          <div className="flex justify-center mt-6">
+            <div className="rounded-lg border p-4 shadow-md text-center w-full max-w-3xl">
+              <h2 className="text-xl font-semibold mb-4">Uploaded Invoice</h2>
+              <div className="relative w-full aspect-[2/3] mx-auto">
+                <Image
+                  src={isinvoice?.imageURL}
+                  alt="Uploaded invoice"
+                  width={700}
+                  height={1200}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 50vw"
+                  className="rounded-md object-contain w-full h-auto"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+
+
+
       </div>
 
 

@@ -1,137 +1,210 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { fetchclient, updateClient, fetchSearchClient } from "@/app/api/actions/clientactions";
-import ClientList from "@/app/components/ClientList";
-import Addclient from "@/app/components/Addclient";
+import React, { useState, useEffect } from "react";
+import { ADDinvoice, savePaymentHistory } from "@/app/api/actions/invoiceactions";
+import { saveReceivedAmount } from "../api/actions/receivedamountactions";
+import { CldImage, CldUploadWidget } from "next-cloudinary";
 
-const Page = () => {
-  const { data: session } = useSession();
-  const [clients, setClients] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const clientsPerPage = 5; // Number of clients per page
-  const [searchTerm, setSearchTerm] = useState("");
 
-  const router = useRouter();
+const AddInvoice = ({ client, getData, onClose }) => {
+    const [formData, setFormData] = useState({
+        client: client || "",
+        user: typeof window !== "undefined" ? sessionStorage.getItem("id") : "",
+        items: [{ item_name: "", item_price: 0, item_quantity: 1, truck_no: "", item_weight: 0, total: 0 }],
+        grandTotal: 0,
+        received_amount: 0,
+        balance_due_amount: 0,
+        imageURL: "",
 
-  useEffect(() => {
-    if (!session) {
-      router.push("/");
-    } else {
-      getData();
-    }
-  }, [session, router]);
+    });
+    const [publicId, setPublicId] = useState("");
+    const [imageUrl, setImageUrl] = useState("");
+    useEffect(() => {
+        // Ensure user ID is set correctly
+        if (typeof window !== "undefined") {
+            setFormData((prev) => ({ ...prev, user: sessionStorage.getItem("id") || "" }));
+        }
+    }, []);
 
-  const getData = useCallback(async () => {
-    const userId = sessionStorage.getItem("id");
-    if (!userId) return;
-    try {
-      const userData = await fetchclient(userId);
-      setClients(userData || []);
-    } catch (error) {
-      console.error("Error fetching clients:", error);
-    }
-  }, []);
+    const updateGrandTotal = (items) => {
+        return items.reduce((sum, item) => sum + item.total, 0);
+    };
 
-  const handleSearch = async (e) => {
-    const term = e.target.value.trim();
-    setSearchTerm(term);
-    if (!term) {
-      await getData();
-      return;
-    }
-    try {
-      const userId = sessionStorage.getItem("id");
-      const searchData = await fetchSearchClient(userId, term);
-      setClients(searchData.clients || []);
-      setCurrentPage(1);
-    } catch (error) {
-      console.error("Error searching clients:", error);
-    }
-  };
+    const handleChange = (e, index = null) => {
+        const { name, value } = e.target;
+        const numericValue = name.includes("price") || name.includes("quantity") || name.includes("weight") || name.includes("received_amount")
+            ? Number(value) || 0
+            : value;
 
-  // Pagination Logic
-  const indexOfLastClient = currentPage * clientsPerPage;
-  const indexOfFirstClient = indexOfLastClient - clientsPerPage;
-  const currentClients = useMemo(() => clients.slice(indexOfFirstClient, indexOfLastClient), [clients, currentPage]);
+        if (index !== null) {
+            const updatedItems = [...formData.items];
+            updatedItems[index] = {
+                ...updatedItems[index],
+                [name]: numericValue,
+            };
+            updatedItems[index].total = updatedItems[index].item_price * updatedItems[index].item_quantity;
+            const newGrandTotal = updateGrandTotal(updatedItems);
+            setFormData((prev) => ({
+                ...prev,
+                items: updatedItems,
+                grandTotal: newGrandTotal,
+                balance_due_amount: Math.max(newGrandTotal - prev.received_amount, 0),
+            }));
+        } else {
+            setFormData((prev) => {
+                const updatedForm = { ...prev, [name]: numericValue };
+                updatedForm.balance_due_amount = Math.max(updatedForm.grandTotal - updatedForm.received_amount, 0);
+                return updatedForm;
+            });
+        }
+    };
 
-  const totalPages = Math.ceil(clients.length / clientsPerPage);
+    const addItem = () => {
+        const newItem = { item_name: "", item_price: 0, item_quantity: 1, truck_no: "", item_weight: 0, total: 0 };
+        setFormData((prev) => {
+            const updatedItems = [...prev.items, newItem];
+            return {
+                ...prev,
+                items: updatedItems,
+                grandTotal: updateGrandTotal(updatedItems),
+                balance_due_amount: Math.max(updateGrandTotal(updatedItems) - prev.received_amount, 0),
+            };
+        });
+    };
 
-  return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-6">
-      {/* Search and Add Button */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <input
-          type="text"
-          onChange={handleSearch}
-          value={searchTerm}
-          placeholder="Search clients..."
-          className="w-full sm:w-2/3 px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <button
-          onClick={() => setIsAddClientOpen(true)}
-          className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-80 text-white font-semibold rounded-lg text-sm px-6 py-3 shadow-lg transition-all"
-        >
-          + Add Client
-        </button>
-      </div>
+    const removeItem = (index) => {
+        setFormData((prev) => {
+            const updatedItems = prev.items.filter((_, i) => i !== index);
+            return {
+                ...prev,
+                items: updatedItems,
+                grandTotal: updateGrandTotal(updatedItems),
+                balance_due_amount: Math.max(updateGrandTotal(updatedItems) - prev.received_amount, 0),
+            };
+        });
+    };
 
-      {/* Clients Table */}
-      <div className="w-full overflow-x-auto shadow-md rounded-lg">
-        {clients.length > 0 ? (
-          <table className="w-full border-collapse min-w-[600px] text-left">
-            <thead className="bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 uppercase text-sm tracking-wider">
-              <tr>
-                <th className="px-6 py-3 border-b">Name</th>
-                <th className="px-6 py-3 border-b">Email</th>
-                <th className="px-6 py-3 border-b">Contact</th>
-                <th className="px-6 py-3 border-b text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {currentClients.map((client) => (
-                <ClientList key={client._id} client={client} getData={getData} />
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p className="text-gray-500 text-center w-full py-4">No clients found.</p>
-        )}
-      </div>
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const action = "create"; // Define the action type
+        try {
+            // ✅ Create Invoice
+            const invoice = await ADDinvoice(formData);
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center space-x-2 mt-4 bg">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className={`px-4 py-2 rounded-lg ${currentPage === 1 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
-          >
-            Prev
-          </button>
-          {Array.from({ length: totalPages }, (_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentPage(index + 1)}
-              className={`px-3 py-1 rounded-md ${
-                currentPage === index + 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-              }`}
-            >
-              {index + 1}
-            </button>
-          ))}
-          <button
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className={`px-4 py-2 rounded-lg ${currentPage === totalPages ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
-          >
-            Next
-          </button>
+            if (invoice && invoice._id) {  // ✅ Ensure invoice is created and has an ID
+                alert("Invoice stored successfully!");
+                getData(); // Refresh data
+                onClose(); // Close the form
+
+                // ✅ Now save received payment against the newly created invoice
+                if (formData.received_amount > 0) {
+                    await saveReceivedAmount(action, {
+                        invoiceId: invoice._id,  // Use the returned invoice ID
+                        client: formData.client,
+                        payment_received: formData.received_amount,
+                    });
+
+                    await savePaymentHistory({
+                        invoiceId: invoice._id,
+                        client: formData.client,
+                        grandTotal: formData.grandTotal,
+                        previous_due_amount: 0,
+                        updated_due_amount: parseFloat(formData.grandTotal - formData.received_amount),
+                        payment_received: formData.received_amount,
+                    });
+
+                }
+
+
+
+
+
+            } else {
+                alert("Failed to store invoice.");
+            }
+        } catch (error) {
+            console.error("Error saving invoice:", error);
+        }
+    };
+
+    return (
+        <div className="h-[68vh] overflow-y-auto bg-gray-100 p-4">
+            <form onSubmit={handleSubmit} className="p-2 border rounded-lg shadow-lg  scroll-auto bg-white max-w-3xl mx-auto">
+                <div className="mb-4 hidden">
+                    <label className="text-sm font-medium text-gray-700">Client ID</label>
+                    <input type="text" name="client" value={formData.client} readOnly className="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-600 shadow-sm" />
+                </div>
+                {formData.items.map((item, index) => (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-center border-b pb-3">
+                        <input type="text" name="item_name" value={item.item_name} onChange={(e) => handleChange(e, index)} placeholder="Item Name" className="border rounded-lg px-3 py-2 w-full" required />
+                        <input type="number" name="item_price" value={item.item_price} onChange={(e) => handleChange(e, index)} placeholder="Price" className="border rounded-lg px-3 py-2 w-full" required />
+                        <input type="number" name="item_quantity" value={item.item_quantity} onChange={(e) => handleChange(e, index)} placeholder="Quantity" className="border rounded-lg px-3 py-2 w-full" required />
+                        <input type="text" name="truck_no" value={item.truck_no} onChange={(e) => handleChange(e, index)} placeholder="Truck No" className="border rounded-lg px-3 py-2 w-full" />
+                        <input type="number" name="item_weight" value={item.item_weight} onChange={(e) => handleChange(e, index)} placeholder="Weight" className="border rounded-lg px-3 py-2 w-full" />
+                        <div className="text-center font-bold text-green-600">₹ {item.total.toFixed(2)}</div>
+                        <button type="button" onClick={() => removeItem(index)} className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition-all">Remove</button>
+                    </div>
+                ))}
+                <div className="flex justify-center my-4">
+                    <button type="button" onClick={addItem} className="bg-green-500 text-white px-5 py-2 rounded-lg hover:bg-green-600 transition-all">+ Add Another Item</button>
+                </div>
+                <div className="mt-6 text-xl font-bold text-center text-gray-800">Grand Total: ₹ {formData.grandTotal.toFixed(2)}</div>
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700">Received Amount</label>
+                    <input type="number" name="received_amount" value={formData.received_amount} onChange={handleChange} className="border rounded-lg px-3 py-2 w-full" required />
+                </div>
+                <div className="mt-4 text-xl font-bold text-center text-red-600">Balance Due: ₹ {formData.balance_due_amount.toFixed(2)}</div>
+
+                <div className="mt-4 text-center">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Upload Invoice Image</label>
+                    <CldUploadWidget
+                        uploadPreset="invoices-image"
+                       
+                        onSuccess={({ event, info }) => {
+                            if (event === "success") {
+                                const imageUrl = info?.secure_url || info?.url;
+                                setPublicId(info?.public_id);
+                                console.log("imageUrl:", imageUrl);
+
+                                // Apply transformations (resize, format conversion, compression, etc.)
+
+                                setImageUrl(imageUrl); // Store optimized URL
+                                setFormData((prev) => ({ ...prev, imageURL: imageUrl }));
+                            }
+                        }}
+
+
+
+                    >
+                        {({ open }) => (
+                            <button
+                                type="button"
+                                onClick={() => open()}
+                                className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-all"
+                            >
+                                Upload an Image
+                            </button>
+                        )}
+                    </CldUploadWidget>
+
+
+                    {publicId && (
+                        <div className="mt-4 max-h-60 overflow-auto rounded-lg border p-2 shadow-inner bg-gray-50">
+                            <CldImage
+                                src={publicId}
+                                alt="Uploaded image"
+                                width="700"
+                                height="1200"
+                                className="rounded-md object-cover"
+                            />
+                        </div>
+                    )}
+                </div>
+                <div className="flex justify-center mt-6">
+                    <button type="submit" className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-all shadow-lg">Submit Invoice</button>
+                </div>
+            </form>
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
-export default Page;
+export default AddInvoice;
