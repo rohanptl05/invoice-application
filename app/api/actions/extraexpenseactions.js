@@ -1,9 +1,8 @@
 "use server"
 
 import connectDB from "@/db/connectDb"
-import  {ExtraExpense}  from "@/models/Extraexpenses";
+import  ExtraExpense  from "@/models/Extraexpenses";
 import mongoose from "mongoose";
-import { NextResponse } from "next/server";
 
 
 export const ADDExpense = async (data) => {

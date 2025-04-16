@@ -2,10 +2,10 @@
 
 import mongoose from "mongoose";
 import connectDB from "@/db/connectDb";
-import {ReceivedAmount} from "@/models/ReceivedAmount"
-import {Invoice} from "@/models/Invoice";
-import {Client} from "@/models/Client";
-import { NextResponse } from "next/server";
+import ReceivedAmount from "@/models/ReceivedAmount"
+import Invoice from "@/models/Invoice";
+import Client from "@/models/Client";
+
 
 export const saveReceivedAmount = async (action, data) => {
     await connectDB();

@@ -255,15 +255,7 @@ const Page = () => {
             }
 
             await editInvoice(selectedInvoice._id, trigger, updatedFields);
-            // console.log("update :", updatedFields)
-
-
-            // await saveReceivedAmount(action,{
-            //     invoiceId: selectedInvoice._id,
-            //     client: id,
-            //     payment_received: selectedInvoice.received_amount,
-            // })
-
+        
 
             alert("Invoice updated successfully!");
             await getData();

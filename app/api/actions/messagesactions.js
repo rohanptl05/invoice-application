@@ -1,8 +1,8 @@
 "use server"
-import {Message} from "@/models/Message"
+import Message from "@/models/Message"
 import connectDB from "@/db/connectDb";
 import mongoose from "mongoose";
-import {twilio} from 'twilio';
+import twilio from 'twilio';
 require('dotenv').config({ path: '.env.local' });
 
 

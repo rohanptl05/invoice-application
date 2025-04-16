@@ -1,11 +1,11 @@
 "use server"
 
 import connectDb from "@/db/connectDb"
-import {Client} from "@/models/Client";
-import  {Invoice} from "@/models/Invoice";
+import Client from "@/models/Client";
+import  Invoice from "@/models/Invoice";
 import  ReceivedAmount  from "@/models/ReceivedAmount";
 import mongoose from "mongoose";
-import { NextResponse } from "next/server";
+import  NextResponse  from "next/server";
 
 
 export const fetchclient = async (id,status) => {
