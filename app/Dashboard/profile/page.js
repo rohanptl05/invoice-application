@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { fetchuser, updateProfile } from "@/app/api/actions/useractions";
 
-const Page = () => {
+const page = () => {
   const [isPopoverVisible, setPopoverVisible] = useState(false);
   const { data: session } = useSession();
   const router = useRouter();
@@ -150,4 +150,4 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default page;

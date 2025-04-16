@@ -6,7 +6,7 @@ import { fetchclient, updateClient} from "@/app/api/actions/clientactions";
 import ClientList from "@/app/components/ClientList";
 import Addclient from "@/app/components/Addclient";
 
-const Page = () => {
+const page = () => {
   const { data: session } = useSession();
   const [clients, setClients] = useState([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -309,4 +309,4 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default page;

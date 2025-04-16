@@ -13,7 +13,7 @@ import { saveReceivedAmount, fetchReceivedAmount } from "@/app/api/actions/recei
 
 
 
-const Page = () => {
+const page = () => {
     const { data: session } = useSession();
     const { id } = useParams();
     const router = useRouter();
@@ -741,4 +741,4 @@ const Page = () => {
     );
 };
 
-export default Page;
+export default page;
