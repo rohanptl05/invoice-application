@@ -5,7 +5,8 @@ import { ADDExpense, GETExpense, EditExpense } from '@/app/api/actions/extraexpe
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import ExtraExpensesList from '@/app/components/ExtraExpensesList'
-const page = () => {
+
+const Page = () => {
   const userId = sessionStorage.getItem("id");
   const [formData, setFormData] = useState({
     amount: "",
@@ -389,7 +390,7 @@ const page = () => {
   )
 }
 
-export default page
+export default Page
 
 
 

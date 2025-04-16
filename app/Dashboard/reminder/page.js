@@ -5,7 +5,7 @@ import { Addmessages, fetchMessages } from '@/app/api/actions/messagesactions';
 import MessagesList from '@/app/components/MessagesList';
 import { useSession } from 'next-auth/react';
 
-const page = () => {
+const Page = () => {
   const { data: session } = useSession();
   const [showModal, setShowModal] = useState(false);
   const [messages, setMessages] = useState([])
@@ -181,4 +181,4 @@ const page = () => {
       );
 };
 
-      export default page;
+      export default Page;

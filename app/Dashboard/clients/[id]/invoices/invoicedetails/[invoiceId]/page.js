@@ -8,7 +8,7 @@ import InvoiceDetailspage from "@/app/components/InvoiceDetails";
 import { fetchSingleclient } from "@/app/api/actions/clientactions";
 import { fetchReceivedAmount } from "@/app/api/actions/receivedamountactions";
 
-const InvoiceDetails = () => {
+const Page = () => {
     const { data: session } = useSession();
     const router = useRouter();
     const { id, invoiceId } = useParams();
@@ -55,4 +55,4 @@ const InvoiceDetails = () => {
     );
 };
 
-export default InvoiceDetails;
+export default Page;
