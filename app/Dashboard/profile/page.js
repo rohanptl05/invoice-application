@@ -16,7 +16,7 @@ const Page = () => {
     } else {
       getData();
     }
-  }, [session]);
+  }, [session,router]);
 
   const getData = async () => {
     if (session?.user?.email) {
@@ -71,7 +71,7 @@ const Page = () => {
         />
         {isPopoverVisible && (
           <div className="absolute top-12 left-1/2 transform -translate-x-1/2 p-4 text-sm bg-white border rounded-lg shadow-lg text-gray-700 border-gray-200 shadow-gray-300">
-            Email can't be changed
+            Email can&apos;t be changed
           </div>
         )}
       </div>

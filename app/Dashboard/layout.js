@@ -24,7 +24,7 @@ export default function RootLayout({ children }) {
       } else {
         getData();
       }
-    }, [session]);
+    }, [session,router]);
      const getData = async () => {
         if (session?.user?.email) {
           let userData = await fetchuser(session.user.email);

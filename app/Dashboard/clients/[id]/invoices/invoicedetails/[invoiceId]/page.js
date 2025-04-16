@@ -22,7 +22,7 @@ const Page = () => {
         } else {
             getData();
         }
-    }, [session, invoiceId]); // Added session dependency
+    }, [session, invoiceId,router]); // Added session dependency
 
     const getData = async () => {
         if (!invoiceId) return;
