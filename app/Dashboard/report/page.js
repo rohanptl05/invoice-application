@@ -45,7 +45,7 @@ const ReportPage = () => {
         console.error("Client ID not found");
         return;
       }
-      const clientData = await fetchClientsWithInvoices(id);
+      const clientData = await fetchClientsWithInvoices(id, "active");
       if (clientData.success) {
         setOriginalInvoices(clientData.invoices);
         setInvoices(clientData.invoices);

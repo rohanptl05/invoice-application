@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { fetchclient, updateClient, fetchSearchClient } from "@/app/api/actions/clientactions";
+import { fetchclient, updateClient} from "@/app/api/actions/clientactions";
 import ClientList from "@/app/components/ClientList";
 import Addclient from "@/app/components/Addclient";
 
@@ -11,9 +11,10 @@ const Page = () => {
   const [clients, setClients] = useState([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState(null);
   const [editedClient, setEditedClient] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [originalClients, setOriginalClients] = useState([]);
+  const [formErrors, setFormErrors] = useState({});
 
 
   const router = useRouter();
@@ -30,23 +31,30 @@ const Page = () => {
     const userId = sessionStorage.getItem("id");
     if (!userId) return;
     try {
-      const userData = await fetchclient(userId);
-      // console.log("all clients",userData)
-      setClients(userData || []);
+      const clientData = await fetchclient(userId,"active");
+      // console.log("all clients",clientData)
+      if (clientData) {
+        setClients(clientData );
+        setOriginalClients(clientData); // Store the original clients data
+      };
+      if (clientData.error) {
+        setClients([]);
+      }
+      
     } catch (error) {
       console.error("Error fetching clients:", error);
     }
   }, []);
 
   const handleOpenEditModal = (client) => {
-    setSelectedClient(client);
+   
     setEditedClient({ ...client });
     setIsEditModalOpen(true);
   };
 
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
-    setSelectedClient(null);
+    
     setEditedClient(null);
   };
 
@@ -63,8 +71,33 @@ const Page = () => {
     setEditedClient({ ...editedClient, [e.target.name]: e.target.value });
   };
 
+ 
+  const validateClient = () => {
+    const errors = {};
+  
+    if (!editedClient.name || editedClient.name.trim().length < 3) {
+      errors.name = "Name must be at least 3 characters.";
+    }
+  
+    if (!editedClient.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editedClient.email)) {
+      errors.email = "Please enter a valid email address.";
+    }
+  
+    if (!editedClient.phone || editedClient.phone.length !== 10) {
+      errors.phone = "Phone number must be exactly 10 digits.";
+    }
+  
+    return errors;
+  };
+  
   const handleUpdateClient = async () => {
     if (!editedClient) return;
+  
+    const errors = validateClient();
+    setFormErrors(errors);
+  
+    if (Object.keys(errors).length > 0) return;
+  
     try {
       const response = await updateClient(editedClient, editedClient._id);
       if (response.success) {
@@ -77,34 +110,33 @@ const Page = () => {
       console.error("Error updating client:", error);
     }
   };
+  
 
   const onChangeHandle = async (e) => {
     const searchTerm = e.target.value.trim();
-    // console.log("Search term:", searchTerm);
-
-    const userId = sessionStorage.getItem("id");
-    if (!userId) return;
-
-    if (searchTerm === "" && searchTerm === undefined) {
-      // If the search term is empty, reset the clients list to the original data
+   
+    if (!searchTerm) {
       await getData();
       return;
     }
+    
 
     try {
-      const searchData = await fetchSearchClient(userId, searchTerm);
-      if (searchData) {
-        setClients(searchData.clients || []);
+      const searchData = [...originalClients].filter((client) => {
+        const nameMatch = client.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const emailMatch = client.email.toLowerCase().includes(searchTerm.toLowerCase());
+        const phoneMatch = client.phone.includes(searchTerm);
+        return nameMatch || emailMatch || phoneMatch;
+      });
+      setClients(searchData);
 
-        // console.log("rohan",searchData.clients)
-      }
 
     } catch (error) {
       console.error("Error searching clients:", error);
     }
   }
 
-  const itemsPerPage = 6; // Set the number of items per page
+  const itemsPerPage = 6; 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 
@@ -189,12 +221,7 @@ const Page = () => {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 animate-fadeIn overflow-y-auto max-h-[90vh]">
             <h3 className="text-xl font-semibold text-gray-900">Add New Client</h3>
             <Addclient onClose={handleCloseAddClientModal} getData={getData} />
-            {/* <button
-              onClick={handleCloseAddClientModal}
-              className="mt-4 bg-gray-200 text-gray-900 px-5 py-2.5 rounded-lg hover:bg-gray-300"
-            >
-              Close
-            </button> */}
+          
           </div>
         </div>
       )}
@@ -205,48 +232,59 @@ const Page = () => {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6  animate-fadeIn">
             <h3 className="text-xl font-semibold text-gray-900">Edit Client</h3>
             {editedClient ? (
-              <form className="space-y-3">
-                <input
-                  type="text"
-                  name="name"
-                  value={editedClient.name}
-                  onChange={handleEditChange}
-                  className="w-full p-2 border rounded-lg"
-                  placeholder="Name"
-                />
-                <input
-                  type="email"
-                  name="email"
-                  value={editedClient.email}
-                  onChange={handleEditChange}
-                  className="w-full p-2 border rounded-lg"
-                  placeholder="Email"
-                />
-                <input
-                  type="text"
-                  name="phone"
-                  value={editedClient.phone}
-                  onChange={(e) => {
-                    const phoneNumber = e.target.value.replace(/\D/g, ""); // Remove non-digit characters
-                    if (phoneNumber.length <= 10) {
-                      setEditedClient({ ...editedClient, phone: phoneNumber });
-                    }
-                  }}
-                  className="w-full p-2 border rounded-lg"
-                  placeholder="Phone"
-                />
-                {editedClient.phone.length !== 10 && (
-                  <p className="text-red-500 text-sm">Phone number must be exactly 10 digits.</p>
-                )}
-                <textarea
-                  type="text"
-                  name="address"
-                  value={editedClient.address}
-                  onChange={handleEditChange}
-                  className="w-full p-2 border rounded-lg"
-                  placeholder="Address"
-                />
-              </form>
+           <form className="space-y-3">
+           <div>
+             <input
+               type="text"
+               name="name"
+               value={editedClient.name}
+               onChange={handleEditChange}
+               className="w-full p-2 border rounded-lg"
+               placeholder="Name"
+               required
+             />
+             {formErrors.name && <p className="text-red-500 text-sm">{formErrors.name}</p>}
+           </div>
+         
+           <div>
+             <input
+               type="email"
+               name="email"
+               value={editedClient.email}
+               onChange={handleEditChange}
+               className="w-full p-2 border rounded-lg"
+               placeholder="Email"
+             />
+             {formErrors.email && <p className="text-red-500 text-sm">{formErrors.email}</p>}
+           </div>
+         
+           <div>
+             <input
+               type="text"
+               name="phone"
+               value={editedClient.phone}
+               onChange={(e) => {
+                 const phoneNumber = e.target.value.replace(/\D/g, "");
+                 if (phoneNumber.length <= 10) {
+                   setEditedClient({ ...editedClient, phone: phoneNumber });
+                 }
+               }}
+               className="w-full p-2 border rounded-lg"
+               placeholder="Phone"
+             />
+             {formErrors.phone && <p className="text-red-500 text-sm">{formErrors.phone}</p>}
+           </div>
+         
+           <textarea
+             name="address"
+             value={editedClient.address}
+             onChange={handleEditChange}
+             className="w-full p-2 border rounded-lg"
+             placeholder="Address"
+             required
+           />
+         </form>
+         
             ) : (
               <p className="text-gray-500">Loading client details...</p>
             )}

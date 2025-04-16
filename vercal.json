@@ -1,0 +1,10 @@
+
+{
+    "cron": [
+      {
+        "path": "/api/actions/smsMessages",
+        "schedule": "*/1 * * * *"
+      }
+    ]
+  }
+  

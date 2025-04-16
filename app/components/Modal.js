@@ -4,21 +4,22 @@ const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">{title}</h2>
-
-        {/* ✅ Scrollable content */}
-        <div className="max-h-[70vh] overflow-y-auto">{children}</div>
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 px-4 py-6">
+      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden sm:rounded-xl sm:max-h-[90vh] sm:overflow-y-auto p-6">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 text-gray-600 hover:text-black"
+          className="absolute top-2 right-2 text-gray-500 hover:text-black text-xl"
+          aria-label="Close"
         >
           ✖
         </button>
-        {/* <button type="button" className="text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Purple to Blue</button> */}
+
+        {/* Title */}
+        {title && <h2 className="text-xl font-bold mb-4 text-center">{title}</h2>}
+
+        {/* Content */}
+        <div className="overflow-y-auto max-h-[70vh]">{children}</div>
       </div>
     </div>
   );

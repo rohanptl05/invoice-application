@@ -6,19 +6,16 @@ const ExtraExpenseSchema = new Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Client",
+      ref: "User", 
       required: true
     },
     amount: {
       type: mongoose.Schema.Types.Decimal128,
       required: true,
       min: [0, "Payment received must be a positive number"],
-      set: (value) => {
-        return mongoose.Types.Decimal128.fromString(parseFloat(value).toFixed(2));
-      },
-      get: (value) => {
-        return parseFloat(value.toString());
-      }
+      set: (value) =>
+        mongoose.Types.Decimal128.fromString(parseFloat(value).toFixed(2)),
+      get: (value) => parseFloat(value.toString())
     },
     date: {
       type: Date,
@@ -31,17 +28,24 @@ const ExtraExpenseSchema = new Schema(
     description: {
       type: String,
       default: ""
-    }
-  },  
-  
+    },
+    recordStatus: {
+      type: String,
+      enum: ["active", "deactivated"],
+      default: "active"
+    },
+    deactivatedAt: { type: Date, default: null }
+  },
   {
     timestamps: true,
-    toJSON: { getters: true, virtuals: true },
-    toObject: { getters: true, virtuals: true }
+    toJSON: { getters: true },
+    toObject: { getters: true }
   }
- 
 );
 
-// ✅ Exporting Model
+ExtraExpenseSchema.index({ deactivatedAt: 1 }, { expireAfterSeconds: 7776000 });
+
+
 const ExtraExpense = mongoose.models.ExtraExpense || mongoose.model("ExtraExpense", ExtraExpenseSchema);
+
 export default ExtraExpense;

@@ -22,8 +22,8 @@ export const fetchuser = async (email) => {
 export const updateProfile = async (data, oldemail) => {
     await connectDb();
 
-    let ndata = { ...data }; // Avoid Object.fromEntries() since data is already an object
-    console.log(ndata);
+    let ndata = { ...data }; 
+   
 
     // If the email is being updated, ensure the new email is not already in use
     if (oldemail !== ndata.email) {

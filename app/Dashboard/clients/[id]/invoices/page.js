@@ -1,15 +1,15 @@
 "use client";
 
-// import "@/app/globals.css";
+
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { fetchInvoice, editInvoice, savePaymentHistory } from "@/app/api/actions/invoiceactions";
+import { fetchInvoice, editInvoice } from "@/app/api/actions/invoiceactions";
 import Invoiceitem from "@/app/components/Invoiceitem";
 import Modal from "@/app/components/Modal";
 import AddInvoice from "@/app/components/AddInvoice";
 import { saveReceivedAmount, fetchReceivedAmount } from "@/app/api/actions/receivedamountactions";
-import { get } from "mongoose";
+
 
 
 
@@ -25,7 +25,6 @@ const Page = () => {
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [originalInvoice, setOriginalInvoice] = useState(null);
     const [total_due_amount, setTotalDueAmount] = useState(0);
-    const [modalType, setModalType] = useState("");
     const [isPaymentModal, setPaymentModal] = useState(false);
     const [isPaymentInvoice, setPaymentInvoice] = useState([]);
     const [totalReceivedAmount, setTotalReceivedAmount] = useState(0);
@@ -45,16 +44,8 @@ const Page = () => {
         } else {
             getData();
         }
-    }, [id, session, router]); // Added selectedStatus to dependencies for re-fetching on status change
-    // useEffect(() => {
-    //     if (invoices.length > 0) {
-    //         const totalDue = invoices.reduce((sum, invoice) => sum + (invoice.balance_due_amount || 0), 0);
-    //         setTotalDueAmount(totalDue);
+    }, [id, session, router]);
 
-    //     } else {
-    //         setTotalDueAmount(0);
-    //     }
-    // }, [invoices]);
 
 
 
@@ -63,7 +54,7 @@ const Page = () => {
     const openAmountModal = () => {
         setTotalReceivedAmount(0);
         setRemainingAmount(0);
-        setIsAmountModal(true);  // Ensure modal opens properly
+        setIsAmountModal(true);
     };
 
     const handleTotalAmountChange = (e) => {
@@ -73,7 +64,7 @@ const Page = () => {
             return;
         }
         setTotalReceivedAmount(enteredAmount);
-        setRemainingAmount(enteredAmount);  // Ensure it syncs correctly
+        setRemainingAmount(enteredAmount);
     };
 
 
@@ -109,15 +100,7 @@ const Page = () => {
                         payment_received: invoice.received_amount,
                     });
 
-                    await savePaymentHistory({
-                        invoiceId: invoice.id,
-                        client: id,
-                        grandTotal: invoice.grandTotal,
-                        previous_due_amount: invoice.balance_due_amount,
-                        updated_due_amount: updated_due_amount,
-                        updated_due_amount: invoice.grandTotal - invoice.received_amount,
-                        payment_received: invoice.received_amount,
-                    });
+
                 }
                 alert("Payments updated successfully!");
                 await getData();
@@ -199,10 +182,11 @@ const Page = () => {
                 console.error("Client ID not found");
                 return;
             }
-            const clientData = await fetchInvoice(id);
+            const clientData = await fetchInvoice(id, "active");
             if (Array.isArray(clientData)) {
                 setOriginalInvoices(clientData);
                 setInvoices(clientData);
+                // console.log('rerr',clientData)
                 const totalDue = clientData.reduce((sum, invoice) => sum + (invoice.balance_due_amount || 0), 0);
                 setTotalDueAmount(totalDue);
             } else {
@@ -223,7 +207,7 @@ const Page = () => {
 
         if (invoice) {
             try {
-                const paymentData = await fetchReceivedAmount(invoice._id);
+                const paymentData = await fetchReceivedAmount(invoice._id, "active");
                 // console.log("rrr",paymentData)
                 if (!paymentData) {
                     setTotalReceivedAmount(0);
@@ -273,16 +257,6 @@ const Page = () => {
             await editInvoice(selectedInvoice._id, trigger, updatedFields);
             // console.log("update :", updatedFields)
 
-
-
-            await savePaymentHistory({
-                invoiceId: selectedInvoice._id,
-                client: id,
-                grandTotal: selectedInvoice.grandTotal,
-                previous_due_amount: selectedInvoice.grandTotal,
-                updated_due_amount: (selectedInvoice.grandTotal - totalReceivedAmount),
-                payment_received: (selectedInvoice.received_amount + totalReceivedAmount),
-            });
 
             // await saveReceivedAmount(action,{
             //     invoiceId: selectedInvoice._id,
@@ -361,17 +335,17 @@ const Page = () => {
         }
 
 
-         // Date Filter — only if both are set
-         if (fromDate && toDate) {
+        // Date Filter — only if both are set
+        if (fromDate && toDate) {
             const from = new Date(`${fromDate}T00:00:00`);
             const to = new Date(`${toDate}T23:59:59`);
-        
+
             filteredInvoices = filteredInvoices.filter(invoice => {
                 const invoiceDate = new Date(invoice.date);
                 return invoiceDate >= from && invoiceDate <= to;
             });
         }
-        
+
 
         // Sorting by Total Amount
         if (totalAmountSort === "Low") {
@@ -517,15 +491,11 @@ const Page = () => {
                     ) : (
                         <p className="text-center text-gray-500">No invoices available</p>
                     )
-
-
-
-
                     }
-
-
                 </div>
 
+
+                {/* paginations button */}
                 <div className="flex justify-center items-center  mt-4">
                     <button
                         onClick={handlePrevPage}

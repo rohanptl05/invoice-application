@@ -1,17 +1,17 @@
 "use server"
 
 import connectDB from "@/db/connectDb"
-import Client from "@/models/Client";
-import { Invoice, PaymentHistory } from "@/models/Invoice";
+import {Client} from "@/models/Client";
+import {Invoice} from "@/models/Invoice";
 import mongoose from "mongoose";
-import { ReceivedAmount } from "@/models/ReceivedAmount";
+import {ReceivedAmount} from "@/models/ReceivedAmount";
 
-export const fetchInvoice = async (id) => {
+export const fetchInvoice = async (id, status) => {
     await connectDB();
 
 
-    let invoices = await Invoice.find({ client: id }).populate("client").sort({ date: -1 });
-
+    // let invoices = await Invoice.find({ client: id , recordStatus : status}).populate('client').sort({ date: -1 })
+    const invoices = await Invoice.find({ client: id, recordStatus: status }).populate('client').sort({ date: -1 })
     if (!invoices || invoices.length === 0) {
         return { error: "No invoices found" };
     }
@@ -26,19 +26,44 @@ export const deleteInvoice = async (id) => {
         await connectDB(); // ✅ Ensure DB connection before proceeding
 
         // ✅ Find and delete invoice
-        const invoice = await Invoice.findByIdAndDelete(id);
+        const invoice = await Invoice.findById(id);
         if (!invoice) {
             return { error: "Invoice not found" };
         }
+        try {
+            await Invoice.findOneAndUpdate(
+                { _id: id },  // Find by the correct ID
+                {
+                    $set: {
+                        recordStatus: "deactivated",
+                        deactivatedAt: new Date()
 
-        // ✅ Delete associated payment history & received amounts
-        const [paymentResult, receivedResult] = await Promise.all([
-            PaymentHistory.deleteMany({ invoice: id }),
-            ReceivedAmount.deleteMany({ invoice: id })
-        ]);
+                    }
+                },
+                { new: true }
+            );
+            await ReceivedAmount.updateMany(
+                { invoice: id },
+                {
+                    $set: {
+                        recordStatus: "deactivated",
+                        deactivatedAt: new Date()
+                    }
+                },
 
-        console.log(`Deleted ${paymentResult.deletedCount} payment records`);
-        console.log(`Deleted ${receivedResult.deletedCount} received amount records`);
+            );
+
+
+        } catch (error) {
+            console.error("Error deleting invoice:", error);
+            return { error: "Failed to delete invoice" };
+
+        }
+
+
+
+
+
 
         return { success: true, message: "Invoice deleted successfully" };
     } catch (error) {
@@ -53,9 +78,7 @@ export const deleteInvoice = async (id) => {
 
 export const editInvoice = async (id, trigger, data) => {
     await connectDB();
-    // console.log("Updating Invoice with Data:", data);
 
-    // Check if the invoice exists
     let invoiceExists = await Invoice.findOne({ _id: id });
 
     if (!invoiceExists) {
@@ -63,7 +86,7 @@ export const editInvoice = async (id, trigger, data) => {
     }
 
     try {
-        // ✅ Ensure status is updated correctly
+
         data.status = data.balance_due_amount === 0 ? "PAID" : "PENDING";
 
         await Invoice.findOneAndUpdate(
@@ -72,21 +95,7 @@ export const editInvoice = async (id, trigger, data) => {
             { new: true, runValidators: true }
         );
 
-        // ✅ Delete old payment history if grandTotal changes
-        if (trigger === false) {
-            try {
-                let payments = await PaymentHistory.deleteMany({ invoice: id });
 
-                if (payments.deletedCount === 0) {
-                    console.log("No payment history found to delete.");
-                } else {
-                    console.log(`Deleted ${payments.deletedCount} payment records.`);
-                }
-            } catch (error) {
-                console.error("Error deleting payment history:", error);
-                return { error: "Failed to delete payment history" };
-            }
-        }
 
         return { success: true, message: "Invoice updated successfully" };
     } catch (error) {
@@ -94,41 +103,6 @@ export const editInvoice = async (id, trigger, data) => {
         return { error: "Failed to update invoice" };
     }
 };
-
-
-
-
-export const savePaymentHistory = async (data) => {
-    await connectDB();
-    // console.log("ttttt:",data)
-
-    try {
-        // Fetch invoice details to get previous due amount and grand total
-        const invoice = await Invoice.findById(data.invoiceId).lean();
-        if (!invoice) {
-            return { error: "Invoice not found" };
-        }
-
-        const newPayment = new PaymentHistory({
-            invoice: new mongoose.Types.ObjectId(data.invoiceId),
-            client: new mongoose.Types.ObjectId(data.client),  // Ensure client ID is used
-            grandTotal: data.grandTotal,
-            previous_due_amount: data.previous_due_amount,
-            payment_received: data.payment_received,
-            updated_due_amount: data.updated_due_amount,
-            payment_date: new Date(), // Store the current date
-        });
-
-        await newPayment.save();
-        return { success: "Payment history saved successfully" };
-    } catch (error) {
-        console.error("Error saving payment history:", error);
-        return { error: "Failed to save payment history" };
-    }
-};
-
-
-
 
 
 
@@ -156,7 +130,7 @@ export const ADDinvoice = async (data) => {
             grandTotal: data.grandTotal,
             received_amount: receivedAmount,
             balance_due_amount: Math.max(balanceDue, 0),
-            imageURL:data.imageURL, // Prevent negative balance
+            imageURL: data.imageURL, // Prevent negative balance
         });
 
         // ✅ Convert the Mongoose document to a plain JSON object
@@ -167,29 +141,8 @@ export const ADDinvoice = async (data) => {
     }
 };
 
-// pymenyts api
-export const fetchPaymentHistory = async (invoiceId) => {
-    await connectDB();
 
-    try {
-        // Fetch all payment history entries related to this invoice
-        const invoiceHistory = await PaymentHistory.find({ invoice: invoiceId }).lean();
-
-        if (!invoiceHistory || invoiceHistory.length === 0) {
-            return { error: "No payment history found for this invoice" };
-        }
-
-        return {
-            success: "Payment history retrieved successfully",
-            invoiceHistory: JSON.parse(JSON.stringify(invoiceHistory))
-        };
-    } catch (error) {
-        console.error("Error fetching payment history:", error);
-        return { error: "Failed to fetch payment history" };
-    }
-};
-
-// invoicesDetalis
+// invoicesDetalis find by invoiceId
 export const fetchInvoiceDetails = async (id) => {
     await connectDB(); // ✅ Ensure DB is connected only once
 
@@ -201,7 +154,6 @@ export const fetchInvoiceDetails = async (id) => {
         }
 
 
-        // ✅ Convert _id and nested ObjectId fields to strings
         return {
             success: true,
             invoice: JSON.parse(JSON.stringify(invoice)),
@@ -214,68 +166,14 @@ export const fetchInvoiceDetails = async (id) => {
 };
 
 
-// 
 
 
-
-
-
-// export const fetchClientsWithInvoices = async (userId) => {
-//     await connectDB();
-
-//     try {
-//         const clients = await Client.find({ user: userId });
-
-//         if (!clients || clients.length === 0) {
-//             return { error: "No clients found for this user." };
-//         }
-
-//         const clientIds = clients.map((client) => client._id);
-//         const invoices = await Invoice.find({ client: { $in: clientIds } }).sort({ date: -1 });
-
-//         if (!invoices || invoices.length === 0) {
-//             return { error: "No invoices found for any client." };
-//         }
-
-//         // Filter only clients that have invoices
-//         const mergedData = clients
-//             .map((client) => {
-//                 const relatedInvoices = invoices.filter(
-//                     (invoice) => invoice.client.toString() === client._id.toString()
-//                 );
-
-//                 // Only return clients with at least one invoice
-//                 if (relatedInvoices.length > 0) {
-//                     return {
-//                         client: JSON.parse(JSON.stringify(client)),
-//                         invoices: relatedInvoices.map((inv) => JSON.parse(JSON.stringify(inv))),
-//                     };
-//                 } else {
-//                     return null; // skip if no invoices
-//                 }
-//             })
-//             .filter(Boolean); // Remove nulls
-
-//         if (mergedData.length === 0) {
-//             return { error: "No invoices found for any client." };
-//         }
-
-//         return {
-//             success: true,
-//             clientsWithInvoices: mergedData,
-//         };
-//     } catch (error) {
-//         console.error("Error fetching merged client-invoice data:", error);
-//         return { error: "Failed to fetch data." };
-//     }
-// };
-
-export const fetchClientsWithInvoices = async (userId) => {
+export const fetchClientsWithInvoices = async (userId, status) => {
     await connectDB();
 
     try {
         // Step 1: Find all clients for the given user
-        const clients = await Client.find({ user: userId }).lean();
+        const clients = await Client.find({ user: userId, clientStatus: status }).lean();
 
         if (!clients || clients.length === 0) {
             return { error: "No clients found for this user." };
@@ -284,7 +182,7 @@ export const fetchClientsWithInvoices = async (userId) => {
         const clientIds = clients.map((client) => client._id);
 
         // Step 2: Find invoices belonging to these clients, populate client data
-        const invoices = await Invoice.find({ client: { $in: clientIds } })
+        const invoices = await Invoice.find({ client: { $in: clientIds }, recordStatus: status })
             .populate("client")
             .sort({ date: -1 })
             .lean();
@@ -302,3 +200,109 @@ export const fetchClientsWithInvoices = async (userId) => {
         return { error: "Failed to fetch data." };
     }
 };
+
+
+// Function to restore an invoice
+export const fetchDeactivetedInvoiceAndRecivedAmount = async (id, status) => {
+    await connectDB();
+
+    try {
+        const clients = await Client.find({ user: id }).lean();
+
+        if (!clients || clients.length === 0) {
+            return { error: "No clients found for this user." };
+        }
+
+        const clientIds = clients.map((client) => client._id);
+
+        // Step 2: Find invoices belonging to these clients, populate client data
+        const invoices = await Invoice.find({ client: { $in: clientIds }, recordStatus: status })
+            .populate("client")
+            .sort({ deactivatedAt : -1 })
+            .lean();
+
+        // const invoiceId = invoices.map((invoice) => invoice._id);
+
+        const Receivedamount = await ReceivedAmount.find({  client: { $in: clientIds }, recordStatus: status }) .populate("client").populate("invoice")
+        .sort({ deactivatedAt : -1 })
+        .lean();
+
+
+        return {
+            success: true,
+            invoices: JSON.parse(JSON.stringify(invoices)),
+            Receivedamount: JSON.parse(JSON.stringify(Receivedamount)),
+        };
+
+
+
+
+
+    } catch (error) {
+
+    }
+}
+
+
+export const RestoreInvoice =async (id)=>{
+    await connectDB()
+
+    console.log('restore id invoice ',id)
+
+
+    try {
+        const invoice = await Invoice.findById(id);
+        if (invoice && (invoice.recordStatus !== "active" || invoice.deactivatedAt !== null)) {
+            await Invoice.findByIdAndUpdate(id, {
+                $set: {
+                    recordStatus: "active",
+                    deactivatedAt: null
+                }
+            });
+        }
+
+        const clientId = invoice.client
+        // console.log("client:",clientId)
+
+        // Step 3: Restore Client only if inactive
+        const client = await Client.findById(clientId);
+        if (client && (client.clientStatus !== "active" || client.deactivatedAt !== null)) {
+            await Client.findByIdAndUpdate(clientId, {
+                $set: {
+                    clientStatus: "active",
+                    deactivatedAt: null
+                }
+            });
+        }
+
+        const receivedAmounts = await ReceivedAmount.find({
+            invoice: id,
+            recordStatus: "active"
+        });
+
+        const totalReceived = receivedAmounts.reduce((sum, rcv) => {
+            const amount = parseFloat(rcv.payment_received);
+            return sum + (isNaN(amount) ? 0 : amount);
+        }, 0);
+
+        // Step 5: Update invoice with remaining amount
+        if (invoice) {
+            const grandTotal = parseFloat(invoice.grandTotal);
+            const remainingAmount = grandTotal - totalReceived;
+
+            await Invoice.findByIdAndUpdate(id, {
+                $set: {
+                    received_amount: totalReceived.toFixed(2),
+                    balance_due_amount: remainingAmount.toFixed(2)
+                }
+            });
+        }
+
+        return { success: true, message: "Restoration and invoice update completed successfully" };
+
+    } catch (error) {
+        console.error("Restore Error:", error);
+        return { success: false, error: "Something went wrong while restoring" };
+    }
+   
+}

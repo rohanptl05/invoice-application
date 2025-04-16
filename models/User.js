@@ -8,15 +8,15 @@ const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true, // Email should be unique
+    unique: true,
   },
   image: {
     type: String,
-    default: "N/A", // Provide a default value
+    default: "N/A",
   },
   address: {
     type: String,
-    default: "N/A", // Provide a default value
+    default: "N/A",
   },
   phone: {
     type: String,
@@ -28,17 +28,31 @@ const UserSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    default: "N/A", // GitHub auth doesn't provide passwords
+    default: "N/A",
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
+  role: {
+    type: String,
+    enum: ["admin", "user"],
+    default: "user",
   },
-  updatedAt: {
-    type: Date,
-    default: Date,
+  accountStatus: {
+    type: String,
+    enum: ["active", "deactivated"],
+    default: "active",
   },
+  deactivatedAt:
+  {
+    type: Date, default: null
+  }
+
+}, {
+  timestamps: true,
+  toJSON: { getters: true },
+  toObject: { getters: true }
 });
+
+
+UserSchema.index({ deactivatedAt: 1 }, { expireAfterSeconds: 7776000 });
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 

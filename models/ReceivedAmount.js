@@ -14,35 +14,37 @@ const ReceivedAmountSchema = new Schema(
         client: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Client",
-            required: true
-        },
-        payment_received: {
-            type: mongoose.Schema.Types.Decimal128, // Prevents floating-point precision issues
             required: true,
-            min: [0, "Payment received must be a positive number"],
-            set: (value) => {
-                // ✅ Convert to float with 2 decimal places before saving
-                return mongoose.Types.Decimal128.fromString(parseFloat(value).toFixed(2));
-            },
-            get: (value) => {
-                // ✅ Convert back to float for proper JSON output
-                return parseFloat(value.toString());
-            }
+            index: true
+        },
+
+        payment_received: {
+            type: Number,
+            required: true,
+            min: 0
         },
         payment_date: {
             type: Date,
             default: Date.now
-        }
+        },
+        recordStatus: {
+            type: String,
+            enum: ["active", "deactivated"],
+            default: "active",
+        },
+        deactivatedAt: { type: Date, default: null },
     },
     {
         timestamps: true,
-        strict: true, // Ensuring only schema-defined fields are stored
-        toJSON: { getters: true }, // ✅ Ensure the getter function runs when converting to JSON
+        toJSON: { getters: true },
         toObject: { getters: true }
-    }
-);
+    },
 
-// ✅ Exporting Model
+);
+// ReceivedAmountSchema.index({ deactivatedAt: 1 }, { expireAfterSeconds: 7776000 }); // Auto-delete after 90 days
+ReceivedAmountSchema.index({ deactivatedAt: 1 }, { expireAfterSeconds: 7776000 });
+
+
 const ReceivedAmount = mongoose.models.ReceivedAmount || mongoose.model("ReceivedAmount", ReceivedAmountSchema);
 
-export { ReceivedAmount };
+export default ReceivedAmount;

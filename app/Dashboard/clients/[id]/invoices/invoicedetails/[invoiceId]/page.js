@@ -30,7 +30,7 @@ const InvoiceDetails = () => {
         try {
             const invoiceData = await fetchInvoiceDetails(invoiceId);
             const clientData = await fetchSingleclient(id);
-            const paymentData = await fetchReceivedAmount(invoiceId)
+            const paymentData = await fetchReceivedAmount(invoiceId,"active");
            
 
             setClient(clientData?.clients[0] || null); // Ensure `clientData.client` exists

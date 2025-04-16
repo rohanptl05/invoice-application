@@ -1,7 +1,7 @@
 "use server"
 
 import connectDB from "@/db/connectDb"
-import  ExtraExpense  from "@/models/Extraexpenses";
+import  {ExtraExpense}  from "@/models/Extraexpenses";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 
@@ -33,11 +33,11 @@ export const ADDExpense = async (data) => {
     }
   };
 
-  export const GETExpense = async (userId) => {
+  export const GETExpense = async (userId,status) => {
     try {
       await connectDB();
       // console.log("Fetching expenses for user:", userId);
-      const expenses = await ExtraExpense.find({ user: userId }).sort({ date: -1 });
+      const expenses = await ExtraExpense.find({ user: userId,recordStatus:status }).sort({ date: -1 });
       
       return expenses.map(expenses => expenses.toObject({ flattenObjectIds: true }));
     } catch (error) {
@@ -53,9 +53,25 @@ export const ADDExpense = async (data) => {
         await connectDB(); // ✅ Ensure DB connection before proceeding
     
         // ✅ Find and delete invoice
-        const Exinvoice = await ExtraExpense.findByIdAndDelete(id);
+        const Exinvoice = await ExtraExpense.findById(id);
         if (!Exinvoice) {
           return { error: "ExInvoice not found" };
+        }
+        try {
+          await ExtraExpense.findOneAndUpdate(
+            { _id: id },  // Find by the correct ID
+            { $set: {
+                recordStatus: "deactivated" ,// Update the fields
+                deactivatedAt: new Date() // Set the deactivated date to now
+    
+            } }, // Update the fields
+            { new: true }  // Return the updated document
+        );
+          
+        } catch (error) {
+          console.error("Error deleting invoice:", error);
+          return { error: "Failed to delete invoice" };
+          
         }
    
     

@@ -31,7 +31,7 @@ const page = () => {
     const userId = sessionStorage.getItem("id");
     if (userId) {
       setUser(userId);
-      const response = await GETExpense(userId);
+      const response = await GETExpense(userId,"active");
       if (response) {
         setExInvoices(response);
 

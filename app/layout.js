@@ -30,9 +30,13 @@ export default function RootLayout({ children }) {
           <div className="absolute bottom-0 left-0 right-0 top-0 bg-[radial-gradient(circle_800px_at_100%_200px,#d5c5ff,transparent)]"></div>
         </div>
         {children}
+        <script src="https://widget.cloudinary.com/v2.0/global/all.js" type="text/javascript"></script>
+      <script src="https://unpkg.com/cloudinary-core/cloudinary-core-shrinkwrap.min.js"></script>
         </SessionWrapper>
         
       </body>
+      
+
     </html>
   );
 }

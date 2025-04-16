@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { ADDinvoice, savePaymentHistory } from "@/app/api/actions/invoiceactions";
+import { ADDinvoice } from "@/app/api/actions/invoiceactions";
 import { saveReceivedAmount } from "../api/actions/receivedamountactions";
 import { CldImage, CldUploadWidget } from "next-cloudinary";
 
@@ -30,34 +30,78 @@ const AddInvoice = ({ client, getData, onClose }) => {
         return items.reduce((sum, item) => sum + item.total, 0);
     };
 
+    // const handleChange = (e, index = null) => {
+    //     const { name, value } = e.target;
+    //     const numericValue = name.includes("price") || name.includes("quantity") || name.includes("weight") || name.includes("received_amount")
+    //         ? Number(value) || 0
+    //         : value;
+
+    //     if (index !== null) {
+    //         const updatedItems = [...formData.items];
+    //         updatedItems[index] = {
+    //             ...updatedItems[index],
+    //             [name]: numericValue,
+    //         };
+    //         updatedItems[index].total = updatedItems[index].item_price * updatedItems[index].item_quantity;
+    //         const newGrandTotal = updateGrandTotal(updatedItems);
+    //         setFormData((prev) => ({
+    //             ...prev,
+    //             items: updatedItems,
+    //             grandTotal: newGrandTotal,
+    //             balance_due_amount: Math.max(newGrandTotal - prev.received_amount, 0),
+    //         }));
+    //     } else {
+    //         setFormData((prev) => {
+    //             const updatedForm = { ...prev, [name]: numericValue };
+    //             updatedForm.balance_due_amount = Math.max(updatedForm.grandTotal - updatedForm.received_amount, 0);
+    //             return updatedForm;
+    //         });
+    //     }
+    // };
+
+
     const handleChange = (e, index = null) => {
         const { name, value } = e.target;
-        const numericValue = name.includes("price") || name.includes("quantity") || name.includes("weight") || name.includes("received_amount")
-            ? Number(value) || 0
-            : value;
-
+    
+        // Keep the value exactly as entered
         if (index !== null) {
             const updatedItems = [...formData.items];
             updatedItems[index] = {
                 ...updatedItems[index],
-                [name]: numericValue,
+                [name]: value,
             };
-            updatedItems[index].total = updatedItems[index].item_price * updatedItems[index].item_quantity;
+    
+            // Safely convert to numbers for calculation
+            const price = parseFloat(updatedItems[index].item_price) || 0;
+            const quantity = parseFloat(updatedItems[index].item_quantity) || 0;
+    
+            updatedItems[index].total = price * quantity;
+    
             const newGrandTotal = updateGrandTotal(updatedItems);
+    
             setFormData((prev) => ({
                 ...prev,
                 items: updatedItems,
                 grandTotal: newGrandTotal,
-                balance_due_amount: Math.max(newGrandTotal - prev.received_amount, 0),
+                balance_due_amount: Math.max(newGrandTotal - parseFloat(prev.received_amount || 0), 0),
             }));
         } else {
             setFormData((prev) => {
-                const updatedForm = { ...prev, [name]: numericValue };
-                updatedForm.balance_due_amount = Math.max(updatedForm.grandTotal - updatedForm.received_amount, 0);
+                const updatedForm = {
+                    ...prev,
+                    [name]: value,
+                };
+    
+                const receivedAmount = parseFloat(name === "received_amount" ? value : prev.received_amount || 0);
+    
+                updatedForm.balance_due_amount = Math.max(prev.grandTotal - receivedAmount, 0);
+    
                 return updatedForm;
             });
         }
     };
+    
+    
 
     const addItem = () => {
         const newItem = { item_name: "", item_price: 0, item_quantity: 1, truck_no: "", item_weight: 0, total: 0 };
@@ -101,15 +145,6 @@ const AddInvoice = ({ client, getData, onClose }) => {
                     await saveReceivedAmount(action, {
                         invoiceId: invoice._id,  // Use the returned invoice ID
                         client: formData.client,
-                        payment_received: formData.received_amount,
-                    });
-
-                    await savePaymentHistory({
-                        invoiceId: invoice._id,
-                        client: formData.client,
-                        grandTotal: formData.grandTotal,
-                        previous_due_amount: 0,
-                        updated_due_amount: parseFloat(formData.grandTotal - formData.received_amount),
                         payment_received: formData.received_amount,
                     });
 
@@ -203,7 +238,7 @@ const AddInvoice = ({ client, getData, onClose }) => {
                             if (event === "success") {
                                 const imageUrl = info?.secure_url || info?.url;
                                 setPublicId(info?.public_id);
-                                console.log("imageUrl:",info);
+                                console.log("imageUrl:", info);
 
                                 setImageUrl(imageUrl);
                                 setFormData((prev) => ({ ...prev, imageURL: imageUrl }));

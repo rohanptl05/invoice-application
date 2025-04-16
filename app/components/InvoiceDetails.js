@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
 import { editReceivedAmount, deleteReceivedAmount } from "../api/actions/receivedamountactions";
-import { editInvoice, savePaymentHistory } from "../api/actions/invoiceactions";
+import { editInvoice } from "../api/actions/invoiceactions";
 import Image from "next/image";
 
-const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
+const InvoiceDetails = ({ invoice, client, payments }) => {
   const [ispayment, setIspayment] = useState([]);
   const [isinvoice, setIsInvoice] = useState({});
   const [isclient, setIsclient] = useState({});
@@ -26,7 +26,7 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
 
   useEffect(() => {
     if (ispayment.length > 0) {
-      const totalReceived = ispayment.reduce((sum, record) => sum + (record.payment_received || 0), 0);
+      const totalReceived = ispayment.reduce((sum, record) => Number(sum) + Number (record.payment_received || 0), 0);
       setTotalReceivedAmount(totalReceived);
       // console.log("Updated Total Received Amount:", totalReceived);
     } else {
@@ -50,20 +50,68 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
 
 
 
+  // const handleSave = async () => {
+  //   if (editedPayment) {
+  //     const response = await editReceivedAmount(editedPayment.id, editedPayment);
+  //     if (response.success) {
+  //       alert("Update successful");
+  //       setIspayment((prevPayments) =>
+  //         prevPayments.map((payment) =>
+  //           payment.id === editedPayment.id ? { ...payment, ...editedPayment } : payment
+  //         )
+  //       );
+
+  //       // const updatedTotalReceived = ispayment.reduce((sum, record) =>sum + (record.id === editedPayment.id ? Number(editedPayment.payment_received) : Number(record.payment_received) || 0), 0);
+  //       const updatedTotalReceived = updatedPayments.reduce(
+  //         (sum, record) => sum + Number(record.payment_received ?? 0),
+  //         0
+  //       );
+
+  //       setTotalReceivedAmount(updatedTotalReceived);
+
+
+  //       // setTotalReceivedAmount(updatedTotalReceived);
+  //       const updatedInvoice = {
+  //         ...isinvoice,
+  //         balance_due_amount: isinvoice.grandTotal - updatedTotalReceived,
+  //         received_amount: updatedTotalReceived,
+  //       };
+
+  //       const invoiceResponse = await editInvoice(isinvoice._id, false, updatedInvoice);
+  //       if (invoiceResponse.success) {
+  //         alert("Invoice updated successfully");
+  //         setIsInvoice(updatedInvoice);
+
+  //       } else {
+  //         alert("Failed to update invoice");
+  //       }
+
+  //       setEditedPayment(null);
+  //       SetModal(false);
+  //     }
+  //   }
+  // };
   const handleSave = async () => {
     if (editedPayment) {
       const response = await editReceivedAmount(editedPayment.id, editedPayment);
       if (response.success) {
         alert("Update successful");
-        setIspayment((prevPayments) =>
-          prevPayments.map((payment) =>
-            payment.id === editedPayment.id ? { ...payment, ...editedPayment } : payment
-          )
+
+        const updatedPayments = ispayment.map((payment) =>
+          payment.id === editedPayment.id ? { ...payment, ...editedPayment } : payment
         );
 
-        const updatedTotalReceived = ispayment.reduce((sum, record) =>
-          sum + (record.id === editedPayment.id ? Number(editedPayment.payment_received) : record.payment_received || 0), 0);
-        setTotalReceivedAmount(updatedTotalReceived);
+        setIspayment(updatedPayments);
+
+        const updatedTotalReceived = updatedPayments.reduce(
+          (sum, record) => Number(sum) + Number(record.payment_received ?? 0),
+          0
+        );
+
+
+
+        // setTotalReceivedAmount(updatedTotalReceived);
+
         const updatedInvoice = {
           ...isinvoice,
           balance_due_amount: isinvoice.grandTotal - updatedTotalReceived,
@@ -74,21 +122,6 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
         if (invoiceResponse.success) {
           alert("Invoice updated successfully");
           setIsInvoice(updatedInvoice);
-          const paymentHistoryResponse = await savePaymentHistory({
-            invoiceId: isinvoice._id,
-            client: isclient._id,
-            grandTotal: isinvoice.grandTotal,
-            previous_due_amount: isinvoice.balance_due_amount,
-            payment_received: editedPayment.payment_received,
-            updated_due_amount: updatedInvoice.balance_due_amount,
-            payment_date: editedPayment.payment_date,
-
-          });
-          if (paymentHistoryResponse.success) {
-            alert("Payment history updated successfully");
-          } else {
-            alert("Failed to update payment history");
-          }
         } else {
           alert("Failed to update invoice");
         }
@@ -108,10 +141,10 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
         alert("Payment deleted successfully");
         setIspayment((prevPayments) => prevPayments.filter((payment) => payment.id !== paymentId));
 
-        const updatedTotalReceived = ispayment
+        const updatedTotalReceived = await ispayment
           .filter((payment) => payment.id !== paymentId)
-          .reduce((sum, record) => sum + (record.payment_received || 0), 0);
-
+          .reduce((sum, record) =>Number(sum) + Number (record.payment_received || 0), 0);
+        
         setTotalReceivedAmount(updatedTotalReceived);
         const updatedInvoice = {
           ...isinvoice,
@@ -132,7 +165,19 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
       }
     }
   };
+  const handleDeleteImage = async () => {
+    const publicId = isinvoice.imageURL.split("/").slice(-1)[0].split(".")[0]; // Extract publicId
 
+    console.log("publicId:", publicId);
+
+    // const result = await deleteImageFromCloudinary(publicId);
+    // if (result.success) {
+    //   alert("Image deleted successfully");
+    //   // Optionally, update your invoice in DB to remove imageURL
+    // } else {
+    //   alert("Failed to delete image");
+    // }
+  };
 
 
   if (!isinvoice) return <p>Loading invoice...</p>;
@@ -252,7 +297,15 @@ const InvoiceDetails = ({ invoice, client, payments, onSavePayment }) => {
         {isinvoice?.imageURL && (
           <div className="flex justify-center mt-6">
             <div className="rounded-lg border p-4 shadow-md text-center w-full max-w-3xl">
-              <h2 className="text-xl font-semibold mb-4">Uploaded Invoice</h2>
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Uploaded Invoice</h2>
+                <button
+                  onClick={handleDeleteImage}
+                  className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Delete Image
+                </button>
+              </div>
               <div className="relative w-full aspect-[2/3] mx-auto">
                 <Image
                   src={isinvoice?.imageURL}

@@ -1,7 +1,5 @@
 "use client"
 import React from 'react'
-import { useState } from 'react'
-import { useEffect } from 'react'
 import { DeleteExinvoices } from '../api/actions/extraexpenseactions'
 
 const ExtraExpensesList = ( { exinvoice, index ,updateExInvoice,getData}) => {
