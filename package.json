@@ -2,9 +2,7 @@
   "name": "invoice-application",
   "version": "0.1.0",
   "private": true,
- 
   "scripts": {
-    
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -14,6 +12,8 @@
     "cloudinary": "^2.6.0",
     "dotenv": "^16.5.0",
     "flowbite": "^3.1.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
     "mongoose": "^8.13.2",
     "mongoose-sequence": "^6.0.1",
     "next": "15.2.1",
@@ -23,7 +23,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
-    "react-to-print": "^3.0.5",
+    "react-to-print": "^3.0.6",
     "twilio": "^5.5.2",
     "uuid": "^11.1.0"
   },

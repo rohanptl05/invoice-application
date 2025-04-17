@@ -26,3 +26,10 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   color: #0a0a0a;
 }
+
+.print-pdf * {
+  color: black !important;
+  background-color: white !important;
+  /* Replace oklch-based colors manually if needed */
+}
+

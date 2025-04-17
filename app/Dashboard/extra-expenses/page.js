@@ -20,21 +20,27 @@ const Page = () => {
   const { data: session } = useSession();
   const router = useRouter();
   const [Exinvoices, setExInvoices] = useState([]);
+  const [originalExinvoices, setOriginalExinvoices] = useState([]);
   const [user, setUser] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectExinvoice, setSelectExinvoice] = useState(null);
   const [editModalOpen, seteditModalOpen] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
   const [monthlyTotalAmount, setMonthlyTotalAmount] = useState(0);
+  const [totalAmountSort, setTotalAmountSort] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
 
   const getData = async () => {
     const userId = sessionStorage.getItem("id");
     if (userId) {
       setUser(userId);
-      const response = await GETExpense(userId,"active");
+      const response = await GETExpense(userId, "active");
       if (response) {
         setExInvoices(response);
+        setOriginalExinvoices(response)
 
 
         const total = response.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
@@ -152,6 +158,58 @@ const Page = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
 
+  const handleFilterChange = (e, type) => {
+    const value = e.target.value;
+
+
+    if (type === "totalAmount") setTotalAmountSort(value);
+    if (type === "from") setFromDate(value);
+    if (type === "to") setToDate(value);
+    if (type === "search") setSearchTerm(value);
+  };
+
+  useEffect(() => {
+    if (!originalExinvoices) return;
+
+    let filteredExInvoices = [...originalExinvoices];
+
+
+
+    // Date Filter — only if both are set
+    if (fromDate && toDate) {
+      const from = new Date(`${fromDate}T00:00:00`);
+      const to = new Date(`${toDate}T23:59:59`);
+      console.log(from, to)
+
+      filteredExInvoices = filteredExInvoices.filter(invoice => {
+        const invoiceDate = new Date(invoice.date);
+        return invoiceDate >= from && invoiceDate <= to;
+      });
+    }
+
+
+    // Sorting by Total Amount
+    if (totalAmountSort === "Low") {
+      filteredExInvoices.sort((a, b) => a.amount - b.amount);
+    } else if (totalAmountSort === "High") {
+      filteredExInvoices.sort((a, b) => b.amount - a.amount);
+    }
+
+    // Sorting by Due Amount
+
+
+    // 🔍 Search Filter
+    if (searchTerm.trim() !== "") {
+      const lowerSearch = searchTerm.toLowerCase();
+      filteredExInvoices = filteredExInvoices.filter(invoice =>
+        invoice.expensetype?.toString().toLowerCase().includes(lowerSearch) ||
+        invoice.description?.toLowerCase().includes(lowerSearch)
+      );
+    }
+
+    setExInvoices(filteredExInvoices);
+  }, [totalAmountSort, fromDate, toDate, searchTerm]);
+
   return (
     <>
       <div className='container  '>
@@ -168,6 +226,63 @@ const Page = () => {
           </div>
         </div>
 
+        <div className="mt-4 bg-amber-100 p-4 rounded-lg shadow-lg">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:justify-between sm:items-center text-center">
+
+            {/* Search */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <label htmlFor="search" className="text-sm font-medium text-gray-700">Search :</label>
+              <input
+                type="text"
+                id="search"
+                onChange={(e) => handleFilterChange(e, "search")}
+                placeholder="Search"
+                className="border rounded-lg px-3 py-2 w-full sm:w-auto"
+
+              />
+            </div>
+
+
+
+
+            {/* Date Filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <label htmlFor="from" className="text-sm font-medium text-gray-700">From:</label>
+              <input
+                type="date"
+                id="from"
+                className="border rounded-lg px-3 py-2"
+                onChange={(e) => handleFilterChange(e, "from")}
+              />
+              <label htmlFor="to" className="text-sm font-medium text-gray-700">To:</label>
+              <input
+                type="date"
+                id="to"
+                className="border rounded-lg px-3 py-2"
+                disabled={!fromDate}
+                onChange={(e) => handleFilterChange(e, "to")}
+              />
+            </div>
+
+            {/* Total Amount Sort */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <label htmlFor="amount" className="text-sm font-medium text-gray-700">Total Amount:</label>
+              <select
+                id="amount"
+                className="border rounded-lg px-3 py-2 w-full sm:w-auto"
+                onChange={(e) => handleFilterChange(e, "totalAmount")}
+              >
+                <option value="">None</option>
+                <option value="Low">Low to High</option>
+                <option value="High">High to Low</option>
+              </select>
+            </div>
+
+            {/* Due Amount Sort */}
+
+
+          </div>
+        </div>
 
 
         {Exinvoices && Exinvoices.length > 0 ? (
@@ -209,21 +324,29 @@ const Page = () => {
 
         }
 
-        <div className="flex justify-center items-center  mt-4">
+        <div className="flex justify-center items-center gap-2 mt-4">
           <button
-            onClick={handlePrevPage}
             disabled={currentPage === 1}
-            className={`px-4 py-2 mx-1 rounded ${currentPage === 1 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
+            onClick={() => setCurrentPage(currentPage - 1)}
+            className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
           >
-            Previous
+            Prev
           </button>
-          <span className="mx-4 text-lg font-semibold">
-            Page {currentPage} of {totalPages}
-          </span>
+
+          {[...Array(totalPages)].map((_, pageNum) => (
+            <button
+              key={pageNum}
+              onClick={() => setCurrentPage(pageNum + 1)}
+              className={`px-3 py-1 rounded ${currentPage === pageNum + 1 ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+            >
+              {pageNum + 1}
+            </button>
+          ))}
+
           <button
-            onClick={handleNextPage}
             disabled={currentPage === totalPages}
-            className={`px-4 py-2 mx-1 rounded ${currentPage === totalPages ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
+            onClick={() => setCurrentPage(currentPage + 1)}
+            className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
           >
             Next
           </button>

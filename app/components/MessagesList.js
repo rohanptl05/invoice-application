@@ -15,7 +15,11 @@ const MessagesList = ({ messages, index }) => {
                 hour12: true,
             })}</td>
             <td className="px-6 py-4 font-medium text-gray-900">{messages.status}</td>
-            <td className="px-6 py-4 font-medium text-gray-900">{messages.body}</td>
+            <td className="px-6 py-4 font-medium text-gray-900" title={messages.body}>{messages.body}
+                {messages.body.length > 25
+                    ? `${messages.body.slice(0, 25)}...`
+                    : messages.body}
+            </td>
             <td className="px-6 py-4 font-medium text-gray-900"><button>Delete</button></td>
 
         </tr>

@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import GitHubProvider from "next-auth/providers/github";
 import connectDB from "@/db/connectDb";
 import User from "@/models/User";
+import { redirect } from "next/navigation";
 
 export const authOptions = {
   providers: [
@@ -45,6 +46,22 @@ export const authOptions = {
       }
       return session;
     },
+    
+     // Add the redirect callback
+     
+    //  async redirect({ url, baseUrl }) {
+    //   // Use process.env.NEXTAUTH_URL directly for the base URL
+    //   // const finalBaseUrl = process.env.NEXTAUTH_URL || baseUrl;
+    //   return url.startsWith(finalBaseUrl) ? url : `${baseUrl}/dashboard`;
+    // },
+    async redirect({ url, baseUrl }) {
+      console.log("url", url);
+      console.log("baseurl",`${baseUrl}/dashboard`);
+      return url.startsWith(baseUrl) ? url : `${baseUrl}/dashboard`;
+      // const finalBaseUrl = process.env.NEXTAUTH_URL || baseUrl;
+      // return url.startsWith(finalBaseUrl) ? url : `${baseUrl}/dashboard`;
+    }
+    
   },
 };
 

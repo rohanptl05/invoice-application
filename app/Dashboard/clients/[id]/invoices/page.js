@@ -488,25 +488,33 @@ const Page = () => {
 
 
                 {/* paginations button */}
-                <div className="flex justify-center items-center  mt-4">
-                    <button
-                        onClick={handlePrevPage}
-                        disabled={currentPage === 1}
-                        className={`px-4 py-2 mx-1 rounded ${currentPage === 1 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
-                    >
-                        Previous
-                    </button>
-                    <span className="mx-4 text-lg font-semibold">
-                        Page {currentPage} of {totalPages}
-                    </span>
-                    <button
-                        onClick={handleNextPage}
-                        disabled={currentPage === totalPages}
-                        className={`px-4 py-2 mx-1 rounded ${currentPage === totalPages ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
-                    >
-                        Next
-                    </button>
-                </div>
+           <div className="flex justify-center items-center gap-2 mt-4">
+<button
+  disabled={currentPage === 1}
+  onClick={() => setCurrentPage(currentPage - 1)}
+  className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+>
+  Prev
+</button>
+
+{[...Array(totalPages)].map((_, pageNum) => (
+  <button
+    key={pageNum}
+    onClick={() => setCurrentPage(pageNum + 1)}
+    className={`px-3 py-1 rounded ${currentPage === pageNum + 1 ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+  >
+    {pageNum + 1}
+  </button>
+))}
+
+<button
+  disabled={currentPage === totalPages}
+  onClick={() => setCurrentPage(currentPage + 1)}
+  className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+>
+  Next
+</button>
+</div>
 
 
 

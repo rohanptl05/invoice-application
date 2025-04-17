@@ -15,7 +15,7 @@ const Page = () => {
     body: '',
     sendAt: '',
   });
-
+  const [currentPage, setCurrentPage] = useState(1);
 
 
   const userId = sessionStorage.getItem("id")
@@ -66,13 +66,22 @@ const Page = () => {
     now.setMinutes(now.getMinutes() + 6); // 6 minutes from now
     return now.toISOString().slice(0, 16); // Format: yyyy-MM-ddTHH:mm
   }
-  
+
   function getMaxDateTime() {
     const maxDate = new Date();
     maxDate.setDate(maxDate.getDate() + 34); // 34 days from now
     return maxDate.toISOString().slice(0, 16);
   }
-  
+
+
+  // Pagination Logic
+  const messagesPerPage = 5; // Customize as needed
+
+  const indexOfLastMessage = currentPage * messagesPerPage;
+  const indexOfFirstMessage = indexOfLastMessage - messagesPerPage;
+  const currentMessages = messages.slice(indexOfFirstMessage, indexOfLastMessage);
+
+  const totalPages = Math.ceil(messages.length / messagesPerPage);
 
 
 
@@ -145,40 +154,71 @@ const Page = () => {
           //   <p>Roahn</p>
           // </Modal>
         )}
-<div>
-  {/* Reminder SMS */}
-  {messages && messages.length > 0 ? (
-    <>
-      <h2 className="text-xl font-bold mb-3 text-gray-700">Reminder SMS</h2>
-      <div className="w-full overflow-x-auto mt-2 h-[67vh] shadow-md rounded-lg">
-        <table className="w-full border-collapse min-w-[600px] text-center">
-          <thead className="bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 uppercase text-sm tracking-wider">
-            <tr>
-              <th className="px-6 py-3 border-b">Index #</th>
-              <th className="px-6 py-3 border-b">Scheduling Date</th>
-              <th className="px-6 py-3 border-b">Status</th>
-              <th className="px-6 py-3 border-b">Message</th>
-              <th className="px-6 py-3 border-b">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {messages.map((message, index=1) => (
-              <MessagesList key={index} messages={message} index={index} />
-            ))}
-          </tbody>
-        </table>
+        <div>
+          {/* Reminder SMS */}
+          {messages && messages.length > 0 ? (
+            <>
+              <h2 className="text-xl font-bold mb-3 text-gray-700">Reminder SMS</h2>
+              <div className="w-full overflow-x-auto mt-2 h-[67vh] shadow-md rounded-lg">
+                <table className="w-full border-collapse min-w-[600px] text-center">
+                  <thead className="bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 uppercase text-sm tracking-wider">
+                    <tr>
+                      <th className="px-6 py-3 border-b">Index #</th>
+                      <th className="px-6 py-3 border-b">Scheduling Date</th>
+                      <th className="px-6 py-3 border-b">Status</th>
+                      <th className="px-6 py-3 border-b">Message</th>
+                      <th className="px-6 py-3 border-b">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentMessages.map((message, index) => (
+                      <MessagesList key={index} messages={message} index={indexOfFirstMessage + index} />
+                    ))}
+
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <p className="text-gray-500 mt-4">No scheduled messages found.</p>
+          )}
+        </div>
+
+
+        {/* //pagination */}
+        <div className="flex justify-center items-center gap-2 mt-4">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(currentPage - 1)}
+            className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+          >
+            Prev
+          </button>
+
+          {[...Array(totalPages)].map((_, pageNum) => (
+            <button
+              key={pageNum}
+              onClick={() => setCurrentPage(pageNum + 1)}
+              className={`px-3 py-1 rounded ${currentPage === pageNum + 1 ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+            >
+              {pageNum + 1}
+            </button>
+          ))}
+
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(currentPage + 1)}
+            className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+
+
+
       </div>
     </>
-  ) : (
-    <p className="text-gray-500 mt-4">No scheduled messages found.</p>
-  )}
-</div>
-
-
-
-        </div>
-      </>
-      );
+  );
 };
 
-      export default Page;
+export default Page;
