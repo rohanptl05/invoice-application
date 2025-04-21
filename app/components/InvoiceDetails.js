@@ -3,15 +3,18 @@ import Modal from "./Modal";
 import { editReceivedAmount, deleteReceivedAmount } from "../api/actions/receivedamountactions";
 import { editInvoice } from "../api/actions/invoiceactions";
 import Image from "next/image";
+import { DeleteImageURL } from "../api/actions/invoiceactions";
 
-const InvoiceDetails = ({ invoice, client, payments }) => {
+
+const InvoiceDetails = ({ invoice, client, payments, reportRef, getData }) => {
+
   const [ispayment, setIspayment] = useState([]);
   const [isinvoice, setIsInvoice] = useState({});
   const [isclient, setIsclient] = useState({});
   const [openModal, SetModal] = useState(false);
   const [editedPayment, setEditedPayment] = useState(null);
   const [totalReceivedAmount, setTotalReceivedAmount] = useState(0);
-
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   useEffect(() => {
     if (invoice) {
       setIsInvoice(invoice);
@@ -26,7 +29,7 @@ const InvoiceDetails = ({ invoice, client, payments }) => {
 
   useEffect(() => {
     if (ispayment.length > 0) {
-      const totalReceived = ispayment.reduce((sum, record) => Number(sum) + Number (record.payment_received || 0), 0);
+      const totalReceived = ispayment.reduce((sum, record) => Number(sum) + Number(record.payment_received || 0), 0);
       setTotalReceivedAmount(totalReceived);
       // console.log("Updated Total Received Amount:", totalReceived);
     } else {
@@ -50,47 +53,6 @@ const InvoiceDetails = ({ invoice, client, payments }) => {
 
 
 
-  // const handleSave = async () => {
-  //   if (editedPayment) {
-  //     const response = await editReceivedAmount(editedPayment.id, editedPayment);
-  //     if (response.success) {
-  //       alert("Update successful");
-  //       setIspayment((prevPayments) =>
-  //         prevPayments.map((payment) =>
-  //           payment.id === editedPayment.id ? { ...payment, ...editedPayment } : payment
-  //         )
-  //       );
-
-  //       // const updatedTotalReceived = ispayment.reduce((sum, record) =>sum + (record.id === editedPayment.id ? Number(editedPayment.payment_received) : Number(record.payment_received) || 0), 0);
-  //       const updatedTotalReceived = updatedPayments.reduce(
-  //         (sum, record) => sum + Number(record.payment_received ?? 0),
-  //         0
-  //       );
-
-  //       setTotalReceivedAmount(updatedTotalReceived);
-
-
-  //       // setTotalReceivedAmount(updatedTotalReceived);
-  //       const updatedInvoice = {
-  //         ...isinvoice,
-  //         balance_due_amount: isinvoice.grandTotal - updatedTotalReceived,
-  //         received_amount: updatedTotalReceived,
-  //       };
-
-  //       const invoiceResponse = await editInvoice(isinvoice._id, false, updatedInvoice);
-  //       if (invoiceResponse.success) {
-  //         alert("Invoice updated successfully");
-  //         setIsInvoice(updatedInvoice);
-
-  //       } else {
-  //         alert("Failed to update invoice");
-  //       }
-
-  //       setEditedPayment(null);
-  //       SetModal(false);
-  //     }
-  //   }
-  // };
   const handleSave = async () => {
     if (editedPayment) {
       const response = await editReceivedAmount(editedPayment.id, editedPayment);
@@ -143,8 +105,8 @@ const InvoiceDetails = ({ invoice, client, payments }) => {
 
         const updatedTotalReceived = await ispayment
           .filter((payment) => payment.id !== paymentId)
-          .reduce((sum, record) =>Number(sum) + Number (record.payment_received || 0), 0);
-        
+          .reduce((sum, record) => Number(sum) + Number(record.payment_received || 0), 0);
+
         setTotalReceivedAmount(updatedTotalReceived);
         const updatedInvoice = {
           ...isinvoice,
@@ -169,6 +131,11 @@ const InvoiceDetails = ({ invoice, client, payments }) => {
     const publicId = isinvoice.imageURL.split("/").slice(-1)[0].split(".")[0]; // Extract publicId
 
     console.log("publicId:", publicId);
+    const res = await DeleteImageURL(isinvoice._id)
+    if (res.success) {
+      alert("Image is deleted successefully ")
+    }
+    getData();
 
     // const result = await deleteImageFromCloudinary(publicId);
     // if (result.success) {
@@ -182,75 +149,142 @@ const InvoiceDetails = ({ invoice, client, payments }) => {
 
   if (!isinvoice) return <p>Loading invoice...</p>;
 
+
   return (
     <>
       <div className="container">
         {isinvoice?.items?.length > 0 ? (
-          <div className="max-w-4xl mx-auto p-6  shadow shadow-gray-400 rounded-lg">
-            <h1 className="text-2xl font-bold mb-4">Invoice Details</h1>
-            <div className="border p-4 rounded-md shadow-sm">
-              <p className="text-lg">
-                <strong>Invoice Number:</strong> {isinvoice?.invoiceNumber}
-              </p>
-              <p className="text-lg">
-                <strong>Status:</strong> {isinvoice?.status}
-              </p>
-              <p className="text-lg">
-                <strong>Client Name:</strong> {isclient?.name}
-              </p>
-              <p className="text-lg">
-                <strong>Date Issued:</strong>{" "}
-                {isinvoice?.date
-                  ? new Date(isinvoice.date).toLocaleDateString("en-GB")
-                  : "N/A"}
-              </p>
-              <p className="text-lg">
-                <strong>Due Amount:</strong> ₹{isinvoice?.balance_due_amount}
-              </p>
+          // <div ref={reportRef} className="max-w-4xl mx-auto shadow shadow-gray-400 rounded-lg bg-white text-black">
+          <div ref={reportRef} className="bg-white p-8 text-black mx-auto w-[90%] rounded shadow-lg"
+          // style={{
+          //   width: '794px', // A4 width at 96 DPI
+          //   padding: '40px',
+          //   boxSizing: 'border-box',
+          //   backgroundColor: 'white',
+          // }}
+          >
+
+            <div className="  rounded-t-lg px-6 py-4">
+              <h1 className="text-2xl font-bold text-center uppercase bg-black py-2 text-white tracking-wider mb-4">INVOICE</h1>
+              <div className="flex justify-between items-start gap-4">
+
+                {/* Logo */}
+                <div className="max-w-[100px]">
+                  <img
+                    src={client.user.companylogo}
+                    alt="Company Logo"
+                    className="w-full h-auto object-contain rounded"
+                  />
+                </div>
+
+
+                {/* Invoice Info */}
+                <div className="flex flex-col items-end float-right space-y-2">
+                  {/* Invoice Info Table */}
+                  <table className="text-sm bg-white text-black rounded shadow rounded-tl">
+                    <tbody className="gap-1.5">
+                      <tr className="rounded-tl">
+                        <th className="w-full  bg-gray-200 text-left p-2 rounded-tl">Invoice #</th>
+                        <td className="p-2 border text-right rounded-tl">{isinvoice?.invoiceNumber}</td>
+                      </tr>
+                      <tr>
+                        <th className="w-full bg-gray-200 text-left p-2 rounded-tl">Issue Date</th>
+                        <td className="p-2 border text-right">
+                          {isinvoice?.date
+                            ? new Date(isinvoice.date).toLocaleDateString("en-GB")
+                            : "N/A"}
+                        </td>
+                      </tr>
+
+                    </tbody>
+                  </table>
+
+                  <address className="text-xs leading-4 not-italic  space-y-1 mt-2">
+                    <p className="font-semibold text-sm text-right">{client.user.company}</p>
+                   
+                      {client.user.companyaddress
+                      .split(',')
+                      .map((line, index) => (
+                        <p key={index} className="text-xs text-gray-700 text-right">
+                          {line.trim()}
+                        </p>
+                          
+                      ))}
+                    <p className="text-xs text-gray-700 text-right">
+                      <span className="font-medium">Phone:</span> {client.user.companyphone}
+                    </p>
+                  </address>
+
+
+                </div>
+
+              </div>
             </div>
 
-            <h2 className="text-xl font-semibold mt-6 mb-2">Items</h2>
-            <table className="w-full border-collapse border ">
-              <thead>
-                <tr className="bg-gray-200">
-                  <th className="border px-4 py-2">Item</th>
-                  <th className="border px-4 py-2">Quantity</th>
-                  <th className="border px-4 py-2">Price</th>
-                  <th className="border px-4 py-2">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isinvoice.items.map((item, index) => (
-                  <tr key={index}>
-                    <td className="border text-center px-4 py-2">
-                      {item.item_name}
-                    </td>
-                    <td className="border text-center px-4 py-2">
-                      {item.item_quantity}
-                    </td>
-                    <td className="border text-center px-4 py-2">
-                      ₹{item.item_price}
-                    </td>
-                    <td className="border text-center px-4 py-2">
-                      ₹{(item.item_quantity * item.item_price).toFixed(2)}
-                    </td>
-                  </tr>
+            {/* Client Info */}
+            <div className="px-4 py-3 w-[95%] mx-auto border bg-blue-100 text-blue-900 text-xs leading-5 font-medium space-y-1 rounded">
+              <p className="font-semibold text-sm">Bill To:</p>
+              <p className="not-italic ">{isclient?.name}</p>
+              <div className="space-y-0.5">
+                {isclient?.address.split(',').map((line, index) => (
+                  <p key={index} className="text-xs">{line.trim()}</p>
                 ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td
-                    colSpan="3"
-                    className="border px-4 py-2 text-right font-bold"
-                  >
-                    Total Amount:
-                  </td>
-                  <td className="border px-4 py-2 text-center font-bold">
-                    ₹{isinvoice?.grandTotal}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+              </div>
+            </div>
+
+
+            {/* Items Table */}
+            <div className="px-6 py-4 overflow-x-auto">
+              <table className="w-full text-sm border border-collapse">
+                <thead className="bg-gray-200">
+                  <tr className="text-center">
+
+                    <th className="p-2 ">No.</th>
+                    <th className="p-2 ">Item</th>
+
+                    <th className="p-2 ">Rate</th>
+                    <th className="p-2 ">Quantity</th>
+                    <th className="p-2 ">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isinvoice.items.map((item, index) => (
+                    <tr key={index} className="text-center">
+
+                      <td className="p-2 ">{index + 1}</td>
+                      <td className="p-2 ">{item.item_name}</td>
+
+                      <td className="p-2 ">₹{item.item_price}</td>
+                      <td className="p-2 ">{item.item_quantity}</td>
+                      <td className="p-2 ">₹{(item.item_quantity * item.item_price).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Totals Section */}
+            <div className="px-6 pb-6 flex justify-end">
+              <table className="text-sm w-[300px]">
+                <tbody className="m-2.5">
+                  <tr className="">
+                    <th className="w-1/2 bg-gray-200 p-2 rounded-tl">Total</th>
+                    <td className="p-2 border text-right">₹{isinvoice?.grandTotal}</td>
+                  </tr>
+                  <tr className="m-2.5">
+                    <th className="bg-gray-200 p-2">Amount Paid</th>
+                    <td className="p-2 border text-right">₹{totalReceivedAmount}</td>
+                  </tr>
+                  <tr className="m-2.5">
+                    <th className="bg-gray-200 p-2 rounded-bl">Balance Due</th>
+                    <td className="p-2 border  text-right">₹{isinvoice?.balance_due_amount}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+            </div>
+
+
           </div>
         ) : (
           <p>Invoice not found</p>
@@ -306,7 +340,7 @@ const InvoiceDetails = ({ invoice, client, payments }) => {
                   Delete Image
                 </button>
               </div>
-              <div className="relative w-full aspect-[2/3] mx-auto">
+              <div className="relative w-full aspect-[2/3] mx-auto my-2">
                 <Image
                   src={isinvoice?.imageURL}
                   alt="Uploaded invoice"

@@ -9,6 +9,7 @@ import Invoiceitem from "@/app/components/Invoiceitem";
 import Modal from "@/app/components/Modal";
 import AddInvoice from "@/app/components/AddInvoice";
 import { saveReceivedAmount, fetchReceivedAmount } from "@/app/api/actions/receivedamountactions";
+import { CldImage, CldUploadWidget } from "next-cloudinary";
 
 
 
@@ -36,6 +37,8 @@ const Page = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
+      const [publicId, setPublicId] = useState("");
+        const [imageUrl, setImageUrl] = useState("");
 
 
     useEffect(() => {
@@ -255,7 +258,7 @@ const Page = () => {
             }
 
             await editInvoice(selectedInvoice._id, trigger, updatedFields);
-        
+
 
             alert("Invoice updated successfully!");
             await getData();
@@ -488,33 +491,33 @@ const Page = () => {
 
 
                 {/* paginations button */}
-           <div className="flex justify-center items-center gap-2 mt-4">
-<button
-  disabled={currentPage === 1}
-  onClick={() => setCurrentPage(currentPage - 1)}
-  className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
->
-  Prev
-</button>
+                <div className="flex justify-center items-center gap-2 mt-4">
+                    <button
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(currentPage - 1)}
+                        className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                    >
+                        Prev
+                    </button>
 
-{[...Array(totalPages)].map((_, pageNum) => (
-  <button
-    key={pageNum}
-    onClick={() => setCurrentPage(pageNum + 1)}
-    className={`px-3 py-1 rounded ${currentPage === pageNum + 1 ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
-  >
-    {pageNum + 1}
-  </button>
-))}
+                    {[...Array(totalPages)].map((_, pageNum) => (
+                        <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum + 1)}
+                            className={`px-3 py-1 rounded ${currentPage === pageNum + 1 ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                        >
+                            {pageNum + 1}
+                        </button>
+                    ))}
 
-<button
-  disabled={currentPage === totalPages}
-  onClick={() => setCurrentPage(currentPage + 1)}
-  className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
->
-  Next
-</button>
-</div>
+                    <button
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                        className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                    >
+                        Next
+                    </button>
+                </div>
 
 
 
@@ -677,6 +680,53 @@ const Page = () => {
                                 <span>₹ {(selectedInvoice?.grandTotal - totalReceivedAmount).toFixed(2)}</span>
                             </div>
                         </div>
+
+                          <div className="mt-4 text-center">
+                                            {/* <label className="block text-sm font-medium text-gray-700 mb-2">Upload Invoice Image</label> */}
+                        
+                                            <CldUploadWidget
+                                                uploadPreset="invoices"
+                                                options={{
+                                                    upload_preset: "invoices",
+                                                    folder: "invoices",
+                                                    tags: ["invoice"],
+                                                }}
+                                                onSuccess={({ event, info }) => {
+                                                    if (event === "success") {
+                                                        const imageUrl = info?.secure_url || info?.url;
+                                                        setPublicId(info?.public_id);
+                                                        // console.log("imageUrl:", info);
+                        
+                                                        setImageUrl(imageUrl);
+                                                        setSelectedInvoice((prev) => ({ ...prev, imageURL: imageUrl }));
+                                                    }
+                                                }}>
+                                                {({ open }) => (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => open()}
+                                                        className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-all"
+                                                    >
+                                                        Upload an Image
+                                                    </button>
+                                                )}
+                                            </CldUploadWidget>
+                        
+                        
+                        
+                        
+                                            {publicId && (
+                                                <div className="mt-4 max-h-60 overflow-auto rounded-lg border p-2 shadow-inner bg-gray-50">
+                                                    <CldImage
+                                                        src={publicId}
+                                                        alt="Uploaded image"
+                                                        width="700"
+                                                        height="1200"
+                                                        className="rounded-md object-cover"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
 
                         <button
                             type="submit"

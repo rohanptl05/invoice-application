@@ -130,7 +130,7 @@ export const fetchSingleclient = async (id) => {
     await connectDb();
     // console.log("Fetching clients with ID:", id);
 
-    let clients = await Client.find({ _id: id }); // ✅ Correct usage for multiple results
+    let clients = await Client.find({ _id: id }).populate("user"); // ✅ Correct usage for multiple results
 
     if (!clients || clients.length === 0) {
         return { error: "No clients found" };

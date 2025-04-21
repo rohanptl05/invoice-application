@@ -33,3 +33,11 @@ body {
   /* Replace oklch-based colors manually if needed */
 }
 
+@media print {
+  html, body {
+    height: auto !important;
+  }
+  .invoice-wrapper {
+    page-break-inside: avoid;
+  }
+}

@@ -4,6 +4,7 @@ import Modal from '@/app/components/Modal'
 import { Addmessages, fetchMessages } from '@/app/api/actions/messagesactions';
 import MessagesList from '@/app/components/MessagesList';
 import { useSession } from 'next-auth/react';
+import { Router } from 'next/router';
 
 const Page = () => {
   const { data: session } = useSession();
@@ -49,10 +50,6 @@ const Page = () => {
       const response = await fetchMessages(userId);
       if (response) {
         setMessages(response);
-        if (messages) {
-
-          // console.log("fetchdata", response)
-        }
       }
     }
   }
@@ -61,17 +58,7 @@ const Page = () => {
     getData();
   }, [session]);
 
-  function getMinDateTime() {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + 6); // 6 minutes from now
-    return now.toISOString().slice(0, 16); // Format: yyyy-MM-ddTHH:mm
-  }
 
-  function getMaxDateTime() {
-    const maxDate = new Date();
-    maxDate.setDate(maxDate.getDate() + 34); // 34 days from now
-    return maxDate.toISOString().slice(0, 16);
-  }
 
 
   // Pagination Logic
@@ -122,8 +109,6 @@ const Page = () => {
                   name="body"
                   value={formData.body}
                   onChange={handleChange}
-                  min={getMinDateTime()}
-                  max={getMaxDateTime()}
                   required
                   className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -172,7 +157,7 @@ const Page = () => {
                   </thead>
                   <tbody>
                     {currentMessages.map((message, index) => (
-                      <MessagesList key={index} messages={message} index={indexOfFirstMessage + index} />
+                      <MessagesList key={index} messages={message}   total={messages.length} index={indexOfFirstMessage + index} getData={getData} />
                     ))}
 
                   </tbody>

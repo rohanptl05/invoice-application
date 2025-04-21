@@ -47,16 +47,36 @@ export const Addmessages = async (data) => {
 
 
 export const fetchMessages = async (id) => {
-    connectDB()
+    connectDB();
     if (id) {
-        let mesages = await Message.find({ user: id }).sort({ createdAt: -1 }); // ✅ Correct usage for multiple results
-
-        if (!mesages || mesages.length === 0) {
-            return { error: "No masages found" }
-        }
-
-
-        return mesages.map(mesages => mesages.toObject({ flattenObjectIds: true })); // ✅ Convert each document
+      let messages = await Message.find({ user: id }).sort({ createdAt: -1 });
+  
+      if (!messages || messages.length === 0) {
+        return null; // Return null instead of { null }
+      }
+  
+      return messages.map((message) => message.toObject({ flattenObjectIds: true }));
     }
+  };
 
-}
+  
+  export const DeleteMassege = async (id) => {
+    connectDB();
+    try {
+      const message = await Message.findById(id);
+      
+      // If the message is not found
+      if (!message) {
+        return { message: "Message not found" };
+      }
+  
+      // Delete the message
+      await Message.findByIdAndDelete(id);
+      return { success : true ,message: "Message deleted successfully" };
+      
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      return { message: "An error occurred while deleting the message" };
+    }
+  };
+  

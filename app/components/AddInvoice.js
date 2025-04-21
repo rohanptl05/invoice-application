@@ -30,35 +30,7 @@ const AddInvoice = ({ client, getData, onClose }) => {
         return items.reduce((sum, item) => sum + item.total, 0);
     };
 
-    // const handleChange = (e, index = null) => {
-    //     const { name, value } = e.target;
-    //     const numericValue = name.includes("price") || name.includes("quantity") || name.includes("weight") || name.includes("received_amount")
-    //         ? Number(value) || 0
-    //         : value;
-
-    //     if (index !== null) {
-    //         const updatedItems = [...formData.items];
-    //         updatedItems[index] = {
-    //             ...updatedItems[index],
-    //             [name]: numericValue,
-    //         };
-    //         updatedItems[index].total = updatedItems[index].item_price * updatedItems[index].item_quantity;
-    //         const newGrandTotal = updateGrandTotal(updatedItems);
-    //         setFormData((prev) => ({
-    //             ...prev,
-    //             items: updatedItems,
-    //             grandTotal: newGrandTotal,
-    //             balance_due_amount: Math.max(newGrandTotal - prev.received_amount, 0),
-    //         }));
-    //     } else {
-    //         setFormData((prev) => {
-    //             const updatedForm = { ...prev, [name]: numericValue };
-    //             updatedForm.balance_due_amount = Math.max(updatedForm.grandTotal - updatedForm.received_amount, 0);
-    //             return updatedForm;
-    //         });
-    //     }
-    // };
-
+  
 
     const handleChange = (e, index = null) => {
         const { name, value } = e.target;
@@ -193,40 +165,6 @@ const AddInvoice = ({ client, getData, onClose }) => {
                 <div className="mt-4 text-center">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Upload Invoice Image</label>
 
-                    {/* <CldUploadWidget
-                        signatureEndpoint="/api/cloudinary/sign-upload"
-                        uploadPreset="invoices"
-                        options={{
-                            folder: "invoices",
-                            tags: ["invoice"],
-                            source: "uw",
-                            use_filename: true,
-                            unique_filename: true,
-                        }}
-                        onSuccess={({ event, info }) => {
-                            if (event === "success") {
-                                const imageUrl = info.secure_url;
-                                setPublicId(info.public_id);
-                                setImageUrl(imageUrl);
-                                setFormData((prev) => ({ ...prev, imageURL: imageUrl }));
-                            }
-                        }}
-                    >
-                        {({ open }) => (
-                            <button
-                                type="button"
-                                onClick={() => open()}
-                                className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-all"
-                            >
-                                Upload an Image
-                            </button>
-                        )}
-                    </CldUploadWidget> */}
-
-
-
-
-
                     <CldUploadWidget
                         uploadPreset="invoices"
                         options={{
@@ -238,7 +176,7 @@ const AddInvoice = ({ client, getData, onClose }) => {
                             if (event === "success") {
                                 const imageUrl = info?.secure_url || info?.url;
                                 setPublicId(info?.public_id);
-                                console.log("imageUrl:", info);
+                                // console.log("imageUrl:", info);
 
                                 setImageUrl(imageUrl);
                                 setFormData((prev) => ({ ...prev, imageURL: imageUrl }));

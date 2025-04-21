@@ -218,14 +218,14 @@ export const fetchDeactivetedInvoiceAndRecivedAmount = async (id, status) => {
         // Step 2: Find invoices belonging to these clients, populate client data
         const invoices = await Invoice.find({ client: { $in: clientIds }, recordStatus: status })
             .populate("client")
-            .sort({ deactivatedAt : -1 })
+            .sort({ deactivatedAt: -1 })
             .lean();
 
         // const invoiceId = invoices.map((invoice) => invoice._id);
 
-        const Receivedamount = await ReceivedAmount.find({  client: { $in: clientIds }, recordStatus: status }) .populate("client").populate("invoice")
-        .sort({ deactivatedAt : -1 })
-        .lean();
+        const Receivedamount = await ReceivedAmount.find({ client: { $in: clientIds }, recordStatus: status }).populate("client").populate("invoice")
+            .sort({ deactivatedAt: -1 })
+            .lean();
 
 
         return {
@@ -244,10 +244,10 @@ export const fetchDeactivetedInvoiceAndRecivedAmount = async (id, status) => {
 }
 
 
-export const RestoreInvoice =async (id)=>{
+export const RestoreInvoice = async (id) => {
     await connectDB()
 
-    console.log('restore id invoice ',id)
+    console.log('restore id invoice ', id)
 
 
     try {
@@ -304,5 +304,27 @@ export const RestoreInvoice =async (id)=>{
         console.error("Restore Error:", error);
         return { success: false, error: "Something went wrong while restoring" };
     }
-   
+
 }
+
+export const DeleteImageURL = async (id) => {
+    connectDB()
+    try {
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return { error: "Invalid invoice ID" };
+        }
+        const invoice = await Invoice.findById(id);
+
+        if (!invoice) {
+            return { error: "Invoice does not exist" };
+        }
+
+        invoice.imageURL = "";
+        await invoice.save();
+
+        return { success: true, message: "Invoice image URL deleted successfully" };
+    } catch (error) {
+        console.error("Error deleting invoice image URL:", error);
+        return { error: "Failed to delete image URL from invoice" };
+    }
+};

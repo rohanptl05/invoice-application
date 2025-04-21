@@ -26,6 +26,18 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: "N/A",
   },
+  companyaddress: {
+    type: String,
+    default: "N/A",
+  },
+  companyphone: {
+    type: String,
+    default: "N/A",
+  },
+  companylogo: {
+    type: String,
+    default: "N/A",
+  },
   password: {
     type: String,
     default: "N/A",

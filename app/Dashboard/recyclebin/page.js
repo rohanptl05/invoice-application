@@ -26,8 +26,11 @@ const RecycleBinPage = () => {
             if (response.error) {
                 setError(response.error)
             } else {
-                setInvoices(response.invoices)
-                setReceivedAmount(response.Receivedamount)
+                
+
+                    setInvoices(response.invoices)
+                    setReceivedAmount(response.Receivedamount)
+                
             }
         } catch (error) {
             setError("Failed to fetch invoices")
@@ -57,8 +60,8 @@ const RecycleBinPage = () => {
                 Recycle Bin
             </h1>
 
-         
-         
+
+
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 -mdrounded-lg ">
                 {/* Invoices Table */}
@@ -90,12 +93,23 @@ const RecycleBinPage = () => {
                     </div>
                     {/* Pagination Controls */}
                     <div className="flex justify-center items-center p-4 gap-2">
-                        <button onClick={() => setInvoicePage(p => Math.max(p - 1, 1))} disabled={invoicePage === 1}
-                            className="px-3 py-1 bg-blue-700 text-white rounded disabled:opacity-50">Prev</button>
-                        <span className="text-white">{invoicePage} / {totalInvoicePages}</span>
-                        <button onClick={() => setInvoicePage(p => Math.min(p + 1, totalInvoicePages))} disabled={invoicePage === totalInvoicePages}
-                            className="px-3 py-1 bg-blue-700 text-white rounded disabled:opacity-50">Next</button>
+                        <button
+                            onClick={() => setInvoicePage(p => Math.max(p - 1, 1))}
+                            disabled={invoicePage === 1 || invoices.length === 0}
+                            className="px-3 py-1 bg-blue-700 text-white rounded disabled:opacity-50"
+                        >
+                            Prev
+                        </button>
+                        <span className="text-white">{invoicePage} / {totalInvoicePages || 1}</span>
+                        <button
+                            onClick={() => setInvoicePage(p => Math.min(p + 1, totalInvoicePages))}
+                            disabled={invoicePage === totalInvoicePages || invoices.length === 0}
+                            className="px-3 py-1 bg-blue-700 text-white rounded disabled:opacity-50"
+                        >
+                            Next
+                        </button>
                     </div>
+
                 </div>
 
                 {/* Received Amount Table */}
@@ -115,7 +129,7 @@ const RecycleBinPage = () => {
                             </thead>
                             <tbody className="divide-y divide-yellow-200">
                                 {paginate(receivedAmount, amountPage).map((received, index) => (
-                                    <DeActiveReceivedAmount key={received._id || index} received={received}  fetchData={fetchInvoices}  />
+                                    <DeActiveReceivedAmount key={received._id || index} received={received} fetchData={fetchInvoices} />
                                 ))}
                                 {receivedAmount.length === 0 && (
                                     <tr>
@@ -128,13 +142,24 @@ const RecycleBinPage = () => {
                         </table>
                     </div>
                     {/* Pagination Controls */}
-                    <div className="flex justify-center items-center p-4 gap-2 ">
-                        <button onClick={() => setAmountPage(p => Math.max(p - 1, 1))} disabled={amountPage === 1}
-                            className="px-3 py-1 bg-yellow-500 text-white rounded disabled:opacity-50">Prev</button>
-                        <span className="text-gray-900">{amountPage} / {totalAmountPages}</span>
-                        <button onClick={() => setAmountPage(p => Math.min(p + 1, totalAmountPages))} disabled={amountPage === totalAmountPages}
-                            className="px-3 py-1 bg-yellow-500 text-white rounded disabled:opacity-50">Next</button>
+                    <div className="flex justify-center items-center p-4 gap-2">
+                        <button
+                            onClick={() => setAmountPage(p => Math.max(p - 1, 1))}
+                            disabled={amountPage === 1 || receivedAmount.length === 0}
+                            className="px-3 py-1 bg-yellow-500 text-white rounded disabled:opacity-50"
+                        >
+                            Prev
+                        </button>
+                        <span className="text-gray-900">{amountPage} / {totalAmountPages || 1}</span>
+                        <button
+                            onClick={() => setAmountPage(p => Math.min(p + 1, totalAmountPages))}
+                            disabled={amountPage === totalAmountPages || receivedAmount.length === 0}
+                            className="px-3 py-1 bg-yellow-500 text-white rounded disabled:opacity-50"
+                        >
+                            Next
+                        </button>
                     </div>
+
                 </div>
             </div>
         </div>
