@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "flowbite/src/themes/default";
 @plugin "flowbite/plugin";
+/* ./styles/globals.css */
+
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
