@@ -1,14 +1,9 @@
+import flowbitePlugin from 'flowbite/plugin';
 
-module.exports = {
-    content: [
-      './pages/**/*.{js,ts,jsx,tsx}',
-      './components/**/*.{js,ts,jsx,tsx}',
-    ],
-    theme: {
-      extend: {},
-    },
-    plugins: [
-      require('flowbite/plugin'),
-    ],
-  }
-  
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+    'flowbite/plugin': flowbitePlugin,
+  },
+};
