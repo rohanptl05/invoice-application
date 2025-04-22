@@ -9,10 +9,7 @@ export const connectDB = async () => {
       return;
     }
 
-   const connection = mongoose.connect(connectionStr, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+   const connection = mongoose.connect(connectionStr);
 
     console.log("🚀 MongoDB Connected Successfully");
     return connection;
