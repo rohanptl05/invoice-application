@@ -71,3 +71,64 @@
   //   };
   // };
   
+
+
+  const generatePDF = async () => {
+    if (!reportRef.current) return;
+  
+    setIsGeneratingPDF(true);
+    const input = reportRef.current;
+  
+    try {
+      // Make visible and reset position
+      input.style.display = 'block';
+      input.style.position = 'static';
+      await new Promise((resolve) => setTimeout(resolve, 100));
+  
+      const canvas = await html2canvas(input, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: -window.scrollY
+      });
+  
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+  
+      const pdfWidth = pdf.internal.pageSize.getWidth(); // 210mm
+      const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm
+  
+      const imgProps = {
+        width: canvas.width,
+        height: canvas.height
+      };
+  
+
+      const pxToMm = (px) => px * 0.264583;
+
+      const imgWidthMm = pxToMm(imgProps.width);
+      const imgHeightMm = pxToMm(imgProps.height);
+  
+      const scaleFactor = pdfWidth / imgWidthMm;
+      const finalWidth = imgWidthMm * scaleFactor;
+      const finalHeight = imgHeightMm * scaleFactor;
+  
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, finalHeight);
+  
+      // ➕ Add timestamp in bottom-right corner
+      const timestamp = new Date().toLocaleString();
+      pdf.setFontSize(8); // small font
+      const margin = 10;
+      const textWidth = pdf.getTextWidth(timestamp);
+      pdf.text(timestamp, pdfWidth - textWidth - margin, pdfHeight - margin);
+  
+      pdf.save('invoice-report.pdf');
+    } catch (error) {
+      console.error("PDF generation error:", error);
+
+      setIsGeneratingPDF(false);
+    }
+  };
+  
+

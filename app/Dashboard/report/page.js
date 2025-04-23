@@ -6,7 +6,7 @@ import { fetchClientsWithInvoices } from '@/app/api/actions/invoiceactions';
 import ReportinvoiceItems from '@/app/components/ReportinvoiceItems';
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-// import PrintableReport from '@/app/components/PrintableReport';
+
 
 
 const ReportPage = () => {
