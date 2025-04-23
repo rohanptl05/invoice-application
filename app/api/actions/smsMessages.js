@@ -1,35 +1,49 @@
+"use server";
 
-require('dotenv').config({ path: '.env.local' }); // ✅ Load .env.local
-
+import Message from "@/models/Message";
 import connectDB from "@/db/connectDb";
-import Message from "@/models/Message"
-import twilio from 'twilio';
+import twilio from "twilio";
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = twilio(accountSid, authToken);
 
 export async function GET() {
-  await connectDB();
+  try {
+    await connectDB();
 
-  const now = new Date();
+    const now = new Date();
+    const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+    const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
 
-  const messages = await Message.find({ sendAt: { $lte: now }, sent: false }).sort({sendAt : -1});
+    const messages = await Message.find({
+      sendAt: {
+        $gte: startOfToday,
+        $lte: endOfToday
+      },
+      sent: false
+    }).sort({ sendAt: -1 });
 
-  for (const msg of messages) {
-    // send sendAd to local time and thand send india
-    try {
-      await client.messages.create({
-        body: msg.body,
-        to: msg.to,
-        messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
-        sendAt: msg.sendAt,
-      });
-      msg.sent = true,
-      msg.status ='Delivered',
-      await msg.save();
-    } catch (err) {
-      console.error(`❌ Failed to send message:`, err.message);
+    for (const msg of messages) {
+      try {
+        const message = await client.messages.create({
+          body: msg.body,
+          messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
+          to: msg.to
+        });
+
+        console.log("✅ Sent message SID:", message.sid);
+
+        msg.sent = true;
+        await msg.save();
+      } catch (err) {
+        console.error("❌ Failed to send message:", msg._id, err.message);
+      }
     }
-  }
 
-  return { success: true, message: "Messages  successfully scheduled" };;
+    return Response.json({ success: true, sent: messages.length });
+  } catch (err) {
+    console.error("❌ SMS sending job failed:", err.message);
+    return Response.json({ success: false, error: err.message });
+  }
 }
