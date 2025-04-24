@@ -35,7 +35,7 @@ export const authOptions = {
       return false;
     },
 
-    async session({ session }) {
+    async session({ session, user, token }) {
       if (session?.user?.email) {
         await connectDB();
         const dbUser = await User.findOne({ email: session.user.email });
@@ -46,6 +46,8 @@ export const authOptions = {
       }
       return session;
     },
+
+    
     
      // Add the redirect callback
      
