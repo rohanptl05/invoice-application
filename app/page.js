@@ -1,6 +1,6 @@
 
 import { SessionContext } from "next-auth/react";
-import Login from "./components/Login";
+import Login from "@/app/components/Login";
 
 
 export default function Home() {

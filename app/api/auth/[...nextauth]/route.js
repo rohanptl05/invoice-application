@@ -47,15 +47,11 @@ export const authOptions = {
     },
 
     
-    
-     // Add the redirect callback
-     
-    // async redirect({ url, baseUrl }) {
-    //   console.log("url", url);
-    //   console.log("baseurl",`${baseUrl}/dashboard`);
-    //   return url.startsWith(baseUrl) ? url : `${baseUrl}/dashboard`;
-    
-    // }
+    async redirect({ url, baseUrl }) {
+      console.log("url",url)
+      console.log("baseurl",baseUrl)
+      return url.startsWith(baseUrl) ? url : `${baseUrl}/dashboard`;
+    }
     
   },
 };
