@@ -12,7 +12,7 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile, email, credentials }) {
       if (account.provider === "github") {
         await connectDB();
         const existingUser = await User.findOne({ email: user.email });
@@ -40,9 +40,8 @@ export const authOptions = {
         await connectDB();
         const dbUser = await User.findOne({ email: session.user.email });
 
-        if (dbUser) {
           session.user.name = dbUser.name;
-        }
+      
       }
       return session;
     },
@@ -51,18 +50,12 @@ export const authOptions = {
     
      // Add the redirect callback
      
-    //  async redirect({ url, baseUrl }) {
-    //   // Use process.env.NEXTAUTH_URL directly for the base URL
-    //   // const finalBaseUrl = process.env.NEXTAUTH_URL || baseUrl;
-    //   return url.startsWith(finalBaseUrl) ? url : `${baseUrl}/dashboard`;
-    // },
-    async redirect({ url, baseUrl }) {
-      console.log("url", url);
-      console.log("baseurl",`${baseUrl}/dashboard`);
-      return url.startsWith(baseUrl) ? url : `${baseUrl}/dashboard`;
-      // const finalBaseUrl = process.env.NEXTAUTH_URL || baseUrl;
-      // return url.startsWith(finalBaseUrl) ? url : `${baseUrl}/dashboard`;
-    }
+    // async redirect({ url, baseUrl }) {
+    //   console.log("url", url);
+    //   console.log("baseurl",`${baseUrl}/dashboard`);
+    //   return url.startsWith(baseUrl) ? url : `${baseUrl}/dashboard`;
+    
+    // }
     
   },
 };
