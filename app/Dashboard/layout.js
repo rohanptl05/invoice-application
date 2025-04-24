@@ -19,27 +19,27 @@ export default function RootLayout({ children }) {
   const { data: session } = useSession();
 
   const router = useRouter();
-   useEffect(() => {
-      if (!session) {
-        router.push("/");
-      } else {
-        getData();
-      }
-    }, [session,router]);
-     const getData = async () => {
-        if (session?.user?.email) {
-          let userData = await fetchuser(session.user.email);
-          if (userData) {
-           
-            sessionStorage.setItem("id",userData._id)
-        }
-      };}
+  useEffect(() => {
+     if (!session) {
+       router.push("/");
+     } else {
+       getData();
+     }
+   }, [session,router]);
+    const getData = async () => {
+       if (session?.user?.email) {
+         let userData = await fetchuser(session.user.email);
+         if (userData) {
+          
+           sessionStorage.setItem("id",userData._id)
+       }
+     };}
 
   // Close sidebar on mobile when a link is clicked
   const handleLinkClick = () => {
     setIsOpen(false);
   };
-
+  
   if (session) {
     return (
       <>

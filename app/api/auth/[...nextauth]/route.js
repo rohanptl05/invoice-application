@@ -53,6 +53,7 @@ export const authOptions = {
       return url.startsWith(baseUrl) ? url : `${baseUrl}/dashboard`;
     }
     
+    
   },
 };
 
